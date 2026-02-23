@@ -1,0 +1,26 @@
+﻿<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Login</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <div class="center">
+    <div class="card">
+      <h1>instan</h1>
+
+      <form onsubmit="app.handleLogin(event)">
+        <input id="username" placeholder="username" required />
+        <input id="password" placeholder="password" type="password" required />
+        <button type="submit">Login</button>
+      </form>
+
+      <a class="small-link" href="/register_page">Нет аккаунта? Register</a>
+    </div>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

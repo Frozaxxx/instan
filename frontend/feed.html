@@ -1,0 +1,43 @@
+﻿<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Feed</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <div class="center">
+    <div class="phone">
+      <div class="topbar">instan</div>
+
+      <div class="post">
+        <div class="post-header">
+          <div class="userline">
+            <div class="avatar"></div>
+            <div id="who">...</div>
+          </div>
+          <div>•••</div>
+        </div>
+
+        <div class="post-img"></div>
+
+        <div class="actions">❤ 💬</div>
+        <div class="caption">Машина на заправке</div>
+
+        <button class="logout" onclick="app.logout()">Logout</button>
+      </div>
+
+      <div class="bottombar">🏠 ➕ 👤</div>
+    </div>
+  </div>
+
+  <script src="/static/app.js"></script>
+  <script>
+    (async () => {
+      const me = await app.requireAuth();
+      document.getElementById("who").textContent = me.username;
+    })();
+  </script>
+</body>
+</html>
