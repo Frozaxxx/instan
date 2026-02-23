@@ -1,4 +1,12 @@
 ﻿const API = "http://127.0.0.1:8000";
+const APP_ORIGIN = new URL(API).origin;
+
+if (window.location.origin !== APP_ORIGIN) {
+  let target = "/login_page";
+  if (window.location.pathname.includes("register")) target = "/register_page";
+  if (window.location.pathname.includes("feed")) target = "/feed_page";
+  window.location.replace(`${APP_ORIGIN}${target}`);
+}
 
 function setToken(token) {
   localStorage.setItem("token", token);
@@ -35,7 +43,7 @@ async function handleLogin(e) {
     });
 
     setToken(resp.access_token);
-    window.location.assign("/feed_page");
+    window.location.assign(`${APP_ORIGIN}/feed_page`);
   } catch (err) {
     alert(err.message);
   }
@@ -55,7 +63,7 @@ async function handleRegister(e) {
       body: { username, email, password, full_name: fullName },
     });
 
-    window.location.assign("/login_page");
+    window.location.assign(`${APP_ORIGIN}/login_page`);
   } catch (err) {
     alert(err.message);
   }
@@ -67,13 +75,13 @@ async function requireAuth() {
     return me;
   } catch (e) {
     localStorage.removeItem("token");
-    window.location.href = "/login_page";
+    window.location.href = `${APP_ORIGIN}/login_page`;
   }
 }
 
 function logout() {
   localStorage.removeItem("token");
-  window.location.href = "/login_page";
+  window.location.href = `${APP_ORIGIN}/login_page`;
 }
 
 window.app = { handleLogin, handleRegister, requireAuth, logout };
