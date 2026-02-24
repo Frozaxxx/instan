@@ -6,37 +6,91 @@
   <title>Feed</title>
   <link rel="stylesheet" href="/static/style.css" />
 </head>
-<body>
-  <div class="center">
+
+<body class="app-bg">
+  <!-- фон по бокам -->
+  <div class="bg-sides"></div>
+
+  <div class="layout">
+    <!-- “телефон”/центральная колонка -->
     <div class="phone">
-      <div class="topbar">instan</div>
 
-      <div class="post">
-        <div class="post-header">
-          <div class="userline">
-            <div class="avatar"></div>
-            <div id="who">...</div>
-          </div>
-          <div>•••</div>
-        </div>
-
-        <div class="post-img"></div>
-
-        <div class="actions">❤ 💬</div>
-        <div class="caption">Машина на заправке</div>
-
-        <button class="logout" onclick="app.logout()">Logout</button>
+      <!-- topbar -->
+      <div class="topbar">
+        <button class="icon-btn" id="burgerBtn" aria-label="menu">☰</button>
+        <div class="brand">instan</div>
+        <div class="top-right">⋯</div>
       </div>
 
-      <div class="bottombar">🏠 ➕ 👤</div>
+      <!-- лента постов -->
+      <div id="feed" class="feed"></div>
+
+      <!-- bottom bar -->
+      <div class="bottombar">
+        <a href="/feed_page" class="nav-btn">🏠</a>
+        <button class="nav-btn" type="button">➕</button>
+        <button class="nav-btn" type="button" id="profileBtn">👤</button>
+      </div>
     </div>
   </div>
+
+  <!-- затемнение -->
+  <div class="overlay" id="overlay"></div>
+
+  <!-- правая панель -->
+  <aside class="drawer" id="drawer">
+    <div class="drawer-header">
+      <div class="drawer-title">Меню</div>
+      <button class="icon-btn" id="closeDrawerBtn" aria-label="close">✕</button>
+    </div>
+
+    <div class="drawer-body">
+      <div class="me-block">
+        <div class="avatar big"></div>
+        <div>
+          <div class="me-name" id="meName">...</div>
+          <div class="me-sub" id="meEmail">...</div>
+        </div>
+      </div>
+
+      <button class="drawer-item" id="openProfileBtn">Профиль</button>
+      <button class="drawer-item danger" onclick="app.logout()">Выйти</button>
+
+      <!-- блок профиля (скрыт, открывается кнопкой) -->
+      <div class="profile-panel" id="profilePanel">
+        <div class="profile-title">Профиль</div>
+
+        <div class="stats">
+          <div class="stat">
+            <div class="stat-num" id="followersCount">0</div>
+            <div class="stat-label">подписчики</div>
+          </div>
+          <div class="stat">
+            <div class="stat-num" id="followingCount">0</div>
+            <div class="stat-label">подписки</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </aside>
 
   <script src="/static/app.js"></script>
   <script>
     (async () => {
+
       const me = await app.requireAuth();
-      document.getElementById("who").textContent = me.username;
+
+      // 2) показываем его в меню
+      document.getElementById("meName").textContent = me.username;
+      document.getElementById("meEmail").textContent = me.email;
+
+      // 3) цифры (если у тебя пока нет этих полей на /me — поставим 0)
+      document.getElementById("followersCount").textContent = me.followers_count ?? 0;
+      document.getElementById("followingCount").textContent = me.following_count ?? 0;
+
+      // 4) рисуем ленту (пока мок-посты на фронте)
+      app.renderFeed(me);
+      app.initFeedUI();
     })();
   </script>
 </body>

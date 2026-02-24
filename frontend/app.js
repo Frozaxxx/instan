@@ -84,4 +84,108 @@ function logout() {
   window.location.href = `${APP_ORIGIN}/login_page`;
 }
 
-window.app = { handleLogin, handleRegister, requireAuth, logout };
+/* ===== НОВОЕ: UI для feed + бургер ===== */
+
+function initFeedUI() {
+  const drawer = document.getElementById("drawer");
+  const overlay = document.getElementById("overlay");
+
+  const burgerBtn = document.getElementById("burgerBtn");
+  const closeDrawerBtn = document.getElementById("closeDrawerBtn");
+  const openProfileBtn = document.getElementById("openProfileBtn");
+  const profileBtn = document.getElementById("profileBtn");
+  const profilePanel = document.getElementById("profilePanel");
+
+  const openDrawer = () => {
+    drawer?.classList.add("open");
+    overlay?.classList.add("open");
+  };
+
+  const closeDrawer = () => {
+    drawer?.classList.remove("open");
+    overlay?.classList.remove("open");
+  };
+
+  burgerBtn?.addEventListener("click", openDrawer);
+  closeDrawerBtn?.addEventListener("click", closeDrawer);
+  overlay?.addEventListener("click", closeDrawer);
+
+  const toggleProfile = () => {
+    profilePanel?.classList.toggle("open");
+  };
+
+  openProfileBtn?.addEventListener("click", toggleProfile);
+  profileBtn?.addEventListener("click", () => {
+    openDrawer();
+    profilePanel?.classList.add("open");
+  });
+}
+
+/* ===== НОВОЕ: рендер ленты (пока мок) ===== */
+
+function renderFeed(me) {
+  const feed = document.getElementById("feed");
+  if (!feed) return;
+
+  // пока моковые посты (потом заменим запросом к backend)
+  const posts = [
+    {
+      id: 1,
+      username: me.username,
+      caption: "Машина на заправке",
+      image: "/static/images/post1.jpg",
+    },
+    {
+      id: 2,
+      username: "test_user",
+      caption: "Закат в городе",
+      image: "/static/images/post2.jpg",
+    },
+    {
+      id: 3,
+      username: "andrey",
+      caption: "Просто фото",
+      image: "/static/images/post1.jpg",
+    },
+  ];
+
+  feed.innerHTML = posts
+    .map(
+      (p) => `
+      <div class="post" data-id="${p.id}">
+        <div class="post-header">
+          <div class="userline">
+            <div class="avatar"></div>
+            <div>${escapeHtml(p.username)}</div>
+          </div>
+          <div>•••</div>
+        </div>
+
+        <div class="post-img" style="background-image:url('${p.image}')"></div>
+
+        <div class="actions">❤ 💬</div>
+        <div class="caption">${escapeHtml(p.caption)}</div>
+      </div>
+    `
+    )
+    .join("");
+}
+
+// маленькая защита от вставки html в caption/username
+function escapeHtml(str) {
+  return String(str)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+window.app = {
+  handleLogin,
+  handleRegister,
+  requireAuth,
+  logout,
+  initFeedUI,
+  renderFeed,
+};

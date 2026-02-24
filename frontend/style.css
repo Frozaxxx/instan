@@ -47,23 +47,80 @@ button {
 }
 
 /* feed */
+.app-bg {
+  margin: 0;
+  background: #f5f5f5;
+}
+
+/* фон по бокам (потом подставишь картинку) */
+.bg-sides{
+  background: url("/static/images/images.jfif") center/cover no-repeat;
+  opacity: 0.15;
+}
+
+/* центральная колонка как в инсте */
+.layout {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+
 .phone {
-  width: 360px;
+  width: 420px;                 /* стало шире */
+  max-width: 92vw;
   background: #fff;
   border: 1px solid #ddd;
   border-radius: 14px;
   overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.06);
 }
 
+/* topbar */
 .topbar {
-  padding: 12px;
-  text-align: center;
-  font-weight: 700;
+  display: grid;
+  grid-template-columns: 44px 1fr 44px;
+  align-items: center;
+  padding: 10px 10px;
   border-bottom: 1px solid #eee;
+  background: #fff;
 }
 
-.post {
+.brand {
+  text-align: center;
+  font-weight: 800;
+}
+
+.top-right {
+  text-align: right;
+  padding-right: 6px;
+  color: #444;
+}
+
+/* кнопки-иконки */
+.icon-btn {
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  cursor: pointer;
+  font-size: 18px;
+}
+
+/* лента */
+.feed {
   padding: 12px;
+  display: grid;
+  gap: 12px;
+}
+
+/* карточка поста */
+.post {
+  border: 1px solid #eee;
+  border-radius: 14px;
+  padding: 12px;
+  background: #fff;
 }
 
 .post-header {
@@ -72,21 +129,32 @@ button {
   justify-content: space-between;
 }
 
-.avatar {
-  width: 28px; height: 28px;
-  border-radius: 50%;
-  background: #ddd;
-  margin-right: 8px;
+.userline {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
-.userline { display: flex; align-items: center; gap: 8px; }
+.avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #ddd;
+}
+
+.avatar.big {
+  width: 44px;
+  height: 44px;
+}
 
 .post-img {
   width: 100%;
-  height: 200px;
+  height: 240px;
   background: #e8e8e8;
   border-radius: 12px;
   margin: 10px 0;
+  background-size: cover;
+  background-position: center;
 }
 
 .actions {
@@ -95,17 +163,152 @@ button {
   font-size: 20px;
 }
 
-.caption { font-size: 14px; color: #333; margin-top: 6px; }
+.caption {
+  font-size: 14px;
+  color: #333;
+  margin-top: 6px;
+}
 
+/* нижняя панель */
 .bottombar {
   display: flex;
   justify-content: space-around;
-  padding: 12px;
+  padding: 10px 12px;
   border-top: 1px solid #eee;
   font-size: 22px;
+  background: #fff;
 }
 
-.logout {
-  background: #ff4d4f;
-  margin-top: 10px;
+.nav-btn {
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  font-size: 22px;
+  text-decoration: none;
+  color: #111;
+}
+
+/* overlay + drawer (правая панель) */
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.25);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .15s ease;
+}
+
+.drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  height: 100vh;
+  width: 320px;
+  max-width: 85vw;
+  background: #fff;
+  border-left: 1px solid #eee;
+  transform: translateX(100%);
+  transition: transform .18s ease;
+  display: flex;
+  flex-direction: column;
+  z-index: 10;
+}
+
+.drawer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px;
+  border-bottom: 1px solid #eee;
+}
+
+.drawer-title {
+  font-weight: 800;
+}
+
+.drawer-body {
+  padding: 12px;
+  display: grid;
+  gap: 10px;
+}
+
+.me-block {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 10px;
+  border: 1px solid #eee;
+  border-radius: 14px;
+}
+
+.me-name { font-weight: 800; }
+.me-sub { font-size: 12px; color: #666; margin-top: 2px; }
+
+.drawer-item {
+  width: 100%;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid #eee;
+  background: #fff;
+  cursor: pointer;
+  text-align: left;
+}
+
+.drawer-item:hover {
+  background: #f7f7f7;
+}
+
+.drawer-item.danger {
+  border-color: #ffd1d1;
+  background: #fff4f4;
+}
+
+/* блок профиля */
+.profile-panel {
+  display: none;
+  padding: 12px;
+  border: 1px solid #eee;
+  border-radius: 14px;
+}
+
+.profile-panel.open {
+  display: block;
+}
+
+.profile-title {
+  font-weight: 800;
+  margin-bottom: 8px;
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.stat {
+  border: 1px solid #eee;
+  border-radius: 12px;
+  padding: 10px;
+  text-align: center;
+}
+
+.stat-num {
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.stat-label {
+  font-size: 12px;
+  color: #666;
+}
+
+/* активные состояния */
+.drawer.open {
+  transform: translateX(0);
+}
+
+.overlay.open {
+  opacity: 1;
+  pointer-events: auto;
 }
