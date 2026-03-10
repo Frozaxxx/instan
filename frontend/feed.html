@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Feed</title>
-  <link rel="stylesheet" href="/static/style.css" />
+  <link rel="stylesheet" href="/static/style.css?v=20260310" />
 </head>
 
 <body class="app-bg">
@@ -17,9 +17,7 @@
 
       <!-- topbar -->
       <div class="topbar">
-        <button class="icon-btn" id="burgerBtn" aria-label="menu">☰</button>
-        <div class="brand">instan</div>
-        <div class="top-right">⋯</div>
+        <button class="brand-btn" id="brandBtn" type="button" aria-label="instan">instan</button>
       </div>
 
       <!-- лента постов -->
@@ -27,8 +25,7 @@
 
       <!-- bottom bar -->
       <div class="bottombar">
-        <a href="/feed_page" class="nav-btn">🏠</a>
-        <button class="nav-btn" type="button">➕</button>
+        <button class="nav-btn" id="addPostBtn" type="button" aria-label="add post">➕</button>
         <button class="nav-btn" type="button" id="profileBtn">👤</button>
       </div>
     </div>
@@ -40,8 +37,8 @@
   <!-- правая панель -->
   <aside class="drawer" id="drawer">
     <div class="drawer-header">
+      <button class="icon-btn" id="closeDrawerBtn" aria-label="close">←</button>
       <div class="drawer-title">Меню</div>
-      <button class="icon-btn" id="closeDrawerBtn" aria-label="close">✕</button>
     </div>
 
     <div class="drawer-body">
@@ -74,23 +71,40 @@
     </div>
   </aside>
 
-  <script src="/static/app.js"></script>
+  <!-- модалка создания поста -->
+  <div class="modal-overlay" id="postModalOverlay"></div>
+  <section class="post-modal" id="postModal" aria-hidden="true">
+    <div class="drawer-header">
+      <div class="drawer-title">Новый пост</div>
+      <button class="icon-btn" id="closePostModalBtn" type="button" aria-label="close">✕</button>
+    </div>
+
+    <form class="post-form" id="createPostForm">
+      <label class="field-label" for="postImage">Фото</label>
+      <input id="postImage" name="image" type="file" accept="image/*" required />
+
+      <img class="image-preview" id="postImagePreview" alt="preview" />
+
+      <label class="field-label" for="postCaption">Описание</label>
+      <textarea id="postCaption" name="caption" rows="4" maxlength="2200" placeholder="О чем пост?"></textarea>
+
+      <div class="post-form-bottom">
+        <div class="form-error" id="postError"></div>
+        <button id="submitPostBtn" type="submit" class="post-submit-btn">Опубликовать</button>
+      </div>
+    </form>
+  </section>
+
+  <script src="/static/app.js?v=20260224"></script>
   <script>
     (async () => {
-
       const me = await app.requireAuth();
-
-      // 2) показываем его в меню
       document.getElementById("meName").textContent = me.username;
       document.getElementById("meEmail").textContent = me.email;
-
-      // 3) цифры (если у тебя пока нет этих полей на /me — поставим 0)
       document.getElementById("followersCount").textContent = me.followers_count ?? 0;
       document.getElementById("followingCount").textContent = me.following_count ?? 0;
-
-      // 4) рисуем ленту (пока мок-посты на фронте)
-      app.renderFeed(me);
       app.initFeedUI();
+      await app.loadFeed();
     })();
   </script>
 </body>

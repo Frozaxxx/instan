@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from pydantic import BaseModel, EmailStr
 
 
@@ -11,3 +13,11 @@ class UserRegister(BaseModel):
 class UserLogin(BaseModel):
     username: str
     password: str
+
+
+class PostOut(BaseModel):
+    id: int
+    username: str
+    caption: str
+    image_url: str
+    created_at: datetime

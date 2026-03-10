@@ -8,6 +8,7 @@ from fastapi.staticfiles import StaticFiles
 
 from database import init_db
 from login import router as login_router
+from posts import router as posts_router
 from registration import router as registration_router
 from users import router as users_router
 
@@ -56,3 +57,4 @@ def feed_page():
 app.include_router(registration_router)
 app.include_router(login_router)
 app.include_router(users_router)
+app.include_router(posts_router)
