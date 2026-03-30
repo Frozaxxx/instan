@@ -1,0 +1,25 @@
+# Frontend UI Glossary
+
+- Боковое выплывающее окно: `ProfileDrawer`, CSS-класс `.profile-drawer`
+- Область аватарки в боковой панели: `.profile-drawer__avatar-shell`
+- Вертикальная ручка для смены аватарки: `.avatar-edit-handle`
+- Затемнение под боковой панелью: `.drawer-backdrop`
+- Окно создания поста: `CreatePostModal`, CSS-класс `.create-post-modal`
+- Окно обрезки аватарки: `AvatarCropModal`, CSS-класс `.avatar-crop-modal`
+- Круглая зона обрезки аватарки: `.avatar-crop-stage`
+- Затемнение под модалкой: `.modal-backdrop`
+- Верхняя панель приложения: `.topbar`
+- Нижняя панель навигации: `.bottom-nav`
+- Кнопка бренда в шапке: `.brand-button`
+- Лента постов: `FeedPage`, контейнер `.feed-list`
+- Карточка поста: `PostCard`, CSS-класс `.post-card`
+- Шапка карточки поста: `.post-card__header`
+- Блок автора в карточке: `.post-card__author`
+- Аватар автора: `.post-card__avatar`
+- Изображение поста: `.post-card__media`
+- Описание поста: `.post-card__caption`
+- Экран логина: `LoginPage`
+- Экран регистрации: `RegisterPage`
+- Карточка авторизации: `AuthCard`, CSS-класс `.auth-card`
+- Поле формы: `.form-field`
+- Ошибка формы: `.form-error`

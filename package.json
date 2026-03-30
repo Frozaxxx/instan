@@ -1,0 +1,22 @@
+{
+  "name": "pythonproject3",
+  "private": true,
+  "version": "1.0.0",
+  "description": "FastAPI backend with a React frontend for Instan",
+  "scripts": {
+    "build": "node ./scripts/build-frontend.mjs"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^6.0.1",
+    "esbuild": "^0.27.4",
+    "vite": "^8.0.3"
+  }
+}

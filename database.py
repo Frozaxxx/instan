@@ -10,7 +10,23 @@ Base = declarative_base()
 
 def init_db() -> None:
     Base.metadata.create_all(bind=engine)
+    migrate_users_table()
     migrate_posts_table()
+    migrate_post_likes_table()
+
+
+def migrate_users_table() -> None:
+    with engine.begin() as conn:
+        tables = set(inspect(conn).get_table_names())
+        if "users" not in tables:
+            return
+
+        conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS followers_count INTEGER"))
+        conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS following_count INTEGER"))
+        conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_path VARCHAR"))
+
+        conn.execute(text("UPDATE users SET followers_count = 0 WHERE followers_count IS NULL"))
+        conn.execute(text("UPDATE users SET following_count = 0 WHERE following_count IS NULL"))
 
 
 def migrate_posts_table() -> None:
@@ -56,6 +72,34 @@ def migrate_posts_table() -> None:
         conn.execute(text("ALTER TABLE posts ALTER COLUMN author_id SET NOT NULL"))
         conn.execute(text("ALTER TABLE posts ALTER COLUMN image_path SET NOT NULL"))
         conn.execute(text("ALTER TABLE posts ALTER COLUMN created_at SET NOT NULL"))
+
+
+def migrate_post_likes_table() -> None:
+    with engine.begin() as conn:
+        conn.execute(
+            text(
+                """
+                CREATE TABLE IF NOT EXISTS post_likes (
+                    id SERIAL PRIMARY KEY,
+                    post_id INTEGER NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+                    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+                )
+                """
+            )
+        )
+        conn.execute(
+            text("CREATE INDEX IF NOT EXISTS ix_post_likes_post_id ON post_likes (post_id)")
+        )
+        conn.execute(
+            text("CREATE INDEX IF NOT EXISTS ix_post_likes_user_id ON post_likes (user_id)")
+        )
+        conn.execute(
+            text(
+                "CREATE UNIQUE INDEX IF NOT EXISTS uq_post_likes_post_user "
+                "ON post_likes (post_id, user_id)"
+            )
+        )
 
 
 def get_db():

@@ -22,6 +22,8 @@ def register(user: UserRegister, db: Session = Depends(get_db)):
         email=user.email,
         password_hash=hash_password(user.password),
         full_name=user.full_name,
+        followers_count=0,
+        following_count=0,
     )
 
     db.add(new_user)

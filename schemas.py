@@ -20,4 +20,13 @@ class PostOut(BaseModel):
     username: str
     caption: str
     image_url: str
+    avatar_url: str | None = None
     created_at: datetime
+    likes_count: int = 0
+    liked_by_me: bool = False
+
+
+class PostLikeOut(BaseModel):
+    post_id: int
+    likes_count: int
+    liked_by_me: bool
