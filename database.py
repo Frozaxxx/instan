@@ -13,6 +13,8 @@ def init_db() -> None:
     migrate_users_table()
     migrate_posts_table()
     migrate_post_likes_table()
+    migrate_comments_table()
+    migrate_comment_likes_table()
 
 
 def migrate_users_table() -> None:
@@ -98,6 +100,83 @@ def migrate_post_likes_table() -> None:
             text(
                 "CREATE UNIQUE INDEX IF NOT EXISTS uq_post_likes_post_user "
                 "ON post_likes (post_id, user_id)"
+            )
+        )
+
+
+def migrate_comments_table() -> None:
+    with engine.begin() as conn:
+        column_rows = conn.execute(
+            text(
+                "SELECT column_name FROM information_schema.columns "
+                "WHERE table_name = 'comments'"
+            )
+        ).fetchall()
+        column_names = {row[0] for row in column_rows}
+
+        conn.execute(
+            text(
+                """
+                CREATE TABLE IF NOT EXISTS comments (
+                    id SERIAL PRIMARY KEY,
+                    post_id INTEGER NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+                    author_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                    parent_id INTEGER REFERENCES comments(id) ON DELETE CASCADE,
+                    body TEXT NOT NULL,
+                    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+                )
+                """
+            )
+        )
+        conn.execute(text("ALTER TABLE comments ADD COLUMN IF NOT EXISTS author_id INTEGER"))
+        conn.execute(text("ALTER TABLE comments ADD COLUMN IF NOT EXISTS parent_id INTEGER"))
+        conn.execute(text("ALTER TABLE comments ADD COLUMN IF NOT EXISTS body TEXT"))
+        conn.execute(text("ALTER TABLE comments ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW()"))
+
+        # Legacy compatibility: old comments table used user_id/text instead of author_id/body.
+        conn.execute(text("UPDATE comments SET author_id = user_id WHERE author_id IS NULL AND user_id IS NOT NULL"))
+        conn.execute(text("UPDATE comments SET body = text WHERE body IS NULL AND text IS NOT NULL"))
+        conn.execute(text("UPDATE comments SET body = '' WHERE body IS NULL"))
+        conn.execute(text("UPDATE comments SET created_at = NOW() WHERE created_at IS NULL"))
+        if "user_id" in column_names:
+            conn.execute(text("ALTER TABLE comments ALTER COLUMN user_id DROP NOT NULL"))
+        if "text" in column_names:
+            conn.execute(text("ALTER TABLE comments ALTER COLUMN text DROP NOT NULL"))
+
+        conn.execute(text("CREATE INDEX IF NOT EXISTS ix_comments_post_id ON comments (post_id)"))
+        conn.execute(text("CREATE INDEX IF NOT EXISTS ix_comments_author_id ON comments (author_id)"))
+        conn.execute(text("CREATE INDEX IF NOT EXISTS ix_comments_parent_id ON comments (parent_id)"))
+        conn.execute(text("CREATE INDEX IF NOT EXISTS ix_comments_created_at ON comments (created_at)"))
+
+        conn.execute(text("ALTER TABLE comments ALTER COLUMN author_id SET NOT NULL"))
+        conn.execute(text("ALTER TABLE comments ALTER COLUMN body SET NOT NULL"))
+        conn.execute(text("ALTER TABLE comments ALTER COLUMN created_at SET NOT NULL"))
+
+
+def migrate_comment_likes_table() -> None:
+    with engine.begin() as conn:
+        conn.execute(
+            text(
+                """
+                CREATE TABLE IF NOT EXISTS comment_likes (
+                    id SERIAL PRIMARY KEY,
+                    comment_id INTEGER NOT NULL REFERENCES comments(id) ON DELETE CASCADE,
+                    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+                )
+                """
+            )
+        )
+        conn.execute(
+            text("CREATE INDEX IF NOT EXISTS ix_comment_likes_comment_id ON comment_likes (comment_id)")
+        )
+        conn.execute(
+            text("CREATE INDEX IF NOT EXISTS ix_comment_likes_user_id ON comment_likes (user_id)")
+        )
+        conn.execute(
+            text(
+                "CREATE UNIQUE INDEX IF NOT EXISTS uq_comment_likes_comment_user "
+                "ON comment_likes (comment_id, user_id)"
             )
         )
 

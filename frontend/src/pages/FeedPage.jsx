@@ -15,6 +15,10 @@ export function FeedPage({ navigate, routes, onLogout }) {
   const [feedError, setFeedError] = useState("");
   const [interactionError, setInteractionError] = useState("");
   const [pendingLikeIds, setPendingLikeIds] = useState({});
+  const [pendingCommentPostIds, setPendingCommentPostIds] = useState({});
+  const [pendingReplyIds, setPendingReplyIds] = useState({});
+  const [pendingCommentLikeIds, setPendingCommentLikeIds] = useState({});
+  const [pendingCommentDeleteIds, setPendingCommentDeleteIds] = useState({});
 
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [profileExpanded, setProfileExpanded] = useState(false);
@@ -90,6 +94,79 @@ export function FeedPage({ navigate, routes, onLogout }) {
               ...post,
               likes_count: nextLikeState.likes_count,
               liked_by_me: nextLikeState.liked_by_me,
+            }
+          : post,
+      ),
+    );
+  };
+
+  const appendComment = (comments, nextComment) =>
+    comments.map((comment) =>
+      comment.id === nextComment.parent_id
+        ? {
+            ...comment,
+            replies: [...(comment.replies || []), nextComment],
+          }
+        : {
+            ...comment,
+            replies: appendComment(comment.replies || [], nextComment),
+          },
+    );
+
+  const updateCommentLike = (comments, nextLikeState) =>
+    comments.map((comment) => ({
+      ...comment,
+      likes_count: comment.id === nextLikeState.comment_id ? nextLikeState.likes_count : comment.likes_count,
+      liked_by_me: comment.id === nextLikeState.comment_id ? nextLikeState.liked_by_me : comment.liked_by_me,
+      replies: updateCommentLike(comment.replies || [], nextLikeState),
+    }));
+
+  const removeComments = (comments, deletedCommentIds) =>
+    comments
+      .filter((comment) => !deletedCommentIds.has(comment.id))
+      .map((comment) => ({
+        ...comment,
+        replies: removeComments(comment.replies || [], deletedCommentIds),
+      }));
+
+  const addCommentToPost = (postId, nextComment) => {
+    setPosts((currentPosts) =>
+      currentPosts.map((post) => {
+        if (post.id !== postId) {
+          return post;
+        }
+
+        const comments = Array.isArray(post.comments) ? post.comments : [];
+        const nextComments = nextComment.parent_id ? appendComment(comments, nextComment) : [...comments, nextComment];
+
+        return {
+          ...post,
+          comments: nextComments,
+          comments_count: (Number(post.comments_count) || 0) + 1,
+        };
+      }),
+    );
+  };
+
+  const updateCommentLikeState = (nextLikeState) => {
+    setPosts((currentPosts) =>
+      currentPosts.map((post) => ({
+        ...post,
+        comments: updateCommentLike(post.comments || [], nextLikeState),
+      })),
+    );
+  };
+
+  const deleteCommentsFromPost = (nextDeleteState) => {
+    const deletedCommentIds = new Set(nextDeleteState.deleted_comment_ids || []);
+
+    setPosts((currentPosts) =>
+      currentPosts.map((post) =>
+        post.id === nextDeleteState.post_id
+          ? {
+              ...post,
+              comments: removeComments(post.comments || [], deletedCommentIds),
+              comments_count: nextDeleteState.comments_count,
             }
           : post,
       ),
@@ -324,6 +401,119 @@ export function FeedPage({ navigate, routes, onLogout }) {
     }
   };
 
+  const handleCommentSubmit = async (postId, body, parentId = null) => {
+    const pendingKey = parentId ?? postId;
+    const isReply = parentId !== null;
+    const pendingState = isReply ? pendingReplyIds : pendingCommentPostIds;
+
+    if (pendingState[pendingKey]) {
+      return false;
+    }
+
+    setInteractionError("");
+    const setPendingState = isReply ? setPendingReplyIds : setPendingCommentPostIds;
+    setPendingState((current) => ({
+      ...current,
+      [pendingKey]: true,
+    }));
+
+    try {
+      const nextComment = await api(`/posts/${postId}/comments`, {
+        method: "POST",
+        body: {
+          body,
+          parent_id: parentId,
+        },
+        auth: true,
+      });
+
+      addCommentToPost(postId, nextComment);
+      return true;
+    } catch (requestError) {
+      if (requestError.status === 401) {
+        handleUnauthorized();
+        return false;
+      }
+
+      setInteractionError(requestError.message);
+      return false;
+    } finally {
+      setPendingState((current) => {
+        const nextState = { ...current };
+        delete nextState[pendingKey];
+        return nextState;
+      });
+    }
+  };
+
+  const handleCommentLikeToggle = async (commentId, likedByMe) => {
+    if (pendingCommentLikeIds[commentId]) {
+      return;
+    }
+
+    setInteractionError("");
+    setPendingCommentLikeIds((current) => ({
+      ...current,
+      [commentId]: true,
+    }));
+
+    try {
+      const nextLikeState = await api(`/comments/${commentId}/like`, {
+        method: likedByMe ? "DELETE" : "POST",
+        auth: true,
+      });
+
+      updateCommentLikeState(nextLikeState);
+    } catch (requestError) {
+      if (requestError.status === 401) {
+        handleUnauthorized();
+        return;
+      }
+
+      setInteractionError(requestError.message);
+    } finally {
+      setPendingCommentLikeIds((current) => {
+        const nextState = { ...current };
+        delete nextState[commentId];
+        return nextState;
+      });
+    }
+  };
+
+  const handleCommentDelete = async (commentId) => {
+    if (pendingCommentDeleteIds[commentId]) {
+      return;
+    }
+
+    setInteractionError("");
+    setPendingCommentDeleteIds((current) => ({
+      ...current,
+      [commentId]: true,
+    }));
+
+    try {
+      const nextDeleteState = await api(`/comments/${commentId}`, {
+        method: "DELETE",
+        auth: true,
+      });
+
+      deleteCommentsFromPost(nextDeleteState);
+    } catch (requestError) {
+      if (requestError.status === 401) {
+        handleUnauthorized();
+        return;
+      }
+
+      setInteractionError(requestError.message);
+    } finally {
+      setPendingCommentDeleteIds((current) => {
+        const nextState = { ...current };
+        delete nextState[commentId];
+        return nextState;
+      });
+    }
+  };
+
   const renderFeedState = () => {
     if (isLoading) {
       return (
@@ -360,7 +550,14 @@ export function FeedPage({ navigate, routes, onLogout }) {
         key={post.id}
         post={post}
         isLikePending={Boolean(pendingLikeIds[post.id])}
+        isCommentPending={Boolean(pendingCommentPostIds[post.id])}
+        pendingCommentLikeIds={pendingCommentLikeIds}
+        pendingReplyIds={pendingReplyIds}
+        pendingCommentDeleteIds={pendingCommentDeleteIds}
         onLikeToggle={handleLikeToggle}
+        onCommentSubmit={handleCommentSubmit}
+        onCommentLikeToggle={handleCommentLikeToggle}
+        onCommentDelete={handleCommentDelete}
       />
     ));
   };

@@ -13120,11 +13120,187 @@ var init_CreatePostModal = __esm({
 });
 
 // frontend/src/components/PostCard.jsx
-function PostCard({ post, onLikeToggle, isLikePending = false }) {
+function CommentItem({
+  comment,
+  onReplySubmit,
+  onCommentLikeToggle,
+  onCommentDelete,
+  pendingCommentLikeIds,
+  pendingReplyIds,
+  pendingCommentDeleteIds
+}) {
+  const [replyText, setReplyText] = (0, import_react3.useState)("");
+  const [replyOpen, setReplyOpen] = (0, import_react3.useState)(false);
+  const likesCount = Number(comment.likes_count) || 0;
+  const isLikePending = Boolean(pendingCommentLikeIds?.[comment.id]);
+  const isReplyPending = Boolean(pendingReplyIds?.[comment.id]);
+  const isDeletePending = Boolean(pendingCommentDeleteIds?.[comment.id]);
+  const replyBody = replyText.trim();
+  const likeButtonLabel = comment.liked_by_me ? "\u0423\u0431\u0440\u0430\u0442\u044C \u043B\u0430\u0439\u043A \u0441 \u043A\u043E\u043C\u043C\u0435\u043D\u0442\u0430\u0440\u0438\u044F" : "\u041F\u043E\u0441\u0442\u0430\u0432\u0438\u0442\u044C \u043B\u0430\u0439\u043A \u043A\u043E\u043C\u043C\u0435\u043D\u0442\u0430\u0440\u0438\u044E";
+  const handleReplySubmit = async (event) => {
+    event.preventDefault();
+    if (!replyBody) {
+      return;
+    }
+    const saved = await onReplySubmit?.(comment.id, replyBody);
+    if (saved) {
+      setReplyText("");
+      setReplyOpen(false);
+    }
+  };
+  return /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "comment", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "comment__body", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { className: "comment__author", children: comment.username }),
+      /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { children: comment.body })
+    ] }),
+    /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "comment__meta", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { children: formatPostDate(comment.created_at) }),
+      /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(
+        "button",
+        {
+          className: `comment__like-button${comment.liked_by_me ? " is-active" : ""}`,
+          type: "button",
+          "aria-label": likeButtonLabel,
+          "aria-pressed": comment.liked_by_me,
+          disabled: isLikePending,
+          onClick: () => onCommentLikeToggle?.(comment.id, comment.liked_by_me),
+          children: [
+            comment.liked_by_me ? "\u2665" : "\u2661",
+            " ",
+            likesCount
+          ]
+        }
+      ),
+      /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("button", { className: "comment__reply-button", type: "button", onClick: () => setReplyOpen((current) => !current), children: "\u041E\u0442\u0432\u0435\u0442\u0438\u0442\u044C" }),
+      comment.can_delete ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+        "button",
+        {
+          className: "comment__delete-button",
+          type: "button",
+          "aria-label": "\u0423\u0434\u0430\u043B\u0438\u0442\u044C \u043A\u043E\u043C\u043C\u0435\u043D\u0442\u0430\u0440\u0438\u0439",
+          disabled: isDeletePending,
+          onClick: () => onCommentDelete?.(comment.id),
+          children: "\u0423\u0434\u0430\u043B\u0438\u0442\u044C"
+        }
+      ) : null
+    ] }),
+    replyOpen ? /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("form", { className: "comment-form comment-form--reply", onSubmit: handleReplySubmit, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+        "input",
+        {
+          className: "comment-form__input",
+          type: "text",
+          value: replyText,
+          maxLength: 1e3,
+          placeholder: `\u041E\u0442\u0432\u0435\u0442\u0438\u0442\u044C ${comment.username}`,
+          onChange: (event) => setReplyText(event.target.value)
+        }
+      ),
+      /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("button", { className: "comment-form__button", type: "submit", disabled: !replyBody || isReplyPending, children: isReplyPending ? "..." : "\u041E\u0442\u0432\u0435\u0442" })
+    ] }) : null,
+    comment.replies?.length ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { className: "comment__replies", children: comment.replies.map((reply) => /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+      CommentItem,
+      {
+        comment: reply,
+        onReplySubmit,
+        onCommentLikeToggle,
+        onCommentDelete,
+        pendingCommentLikeIds,
+        pendingReplyIds,
+        pendingCommentDeleteIds
+      },
+      reply.id
+    )) }) : null
+  ] });
+}
+function CommentsModal({
+  post,
+  open,
+  onClose,
+  onCommentSubmit,
+  onCommentLikeToggle,
+  onCommentDelete,
+  isCommentPending,
+  pendingCommentLikeIds,
+  pendingReplyIds,
+  pendingCommentDeleteIds
+}) {
+  const [commentText, setCommentText] = (0, import_react3.useState)("");
+  if (!open) {
+    return null;
+  }
+  const commentsCount = Number(post.comments_count) || 0;
+  const comments = Array.isArray(post.comments) ? post.comments : [];
+  const commentBody = commentText.trim();
+  const handleCommentSubmit = async (event) => {
+    event.preventDefault();
+    if (!commentBody) {
+      return;
+    }
+    const saved = await onCommentSubmit?.(post.id, commentBody, null);
+    if (saved) {
+      setCommentText("");
+    }
+  };
+  return /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(import_jsx_runtime3.Fragment, { children: [
+    /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { className: "modal-backdrop comments-modal__backdrop is-visible", onClick: onClose }),
+    /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("section", { className: "comments-modal", role: "dialog", "aria-modal": "true", "aria-labelledby": `comments-title-${post.id}`, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("header", { className: "comments-modal__header", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { id: `comments-title-${post.id}`, className: "comments-modal__title", children: [
+          "\u041A\u043E\u043C\u043C\u0435\u043D\u0442\u0430\u0440\u0438\u0438 (",
+          commentsCount,
+          ")"
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("button", { className: "icon-button", type: "button", "aria-label": "\u0417\u0430\u043A\u0440\u044B\u0442\u044C \u043A\u043E\u043C\u043C\u0435\u043D\u0442\u0430\u0440\u0438\u0438", onClick: onClose, children: "\xD7" })
+      ] }),
+      /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { className: "comments-modal__body", children: comments.length ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { className: "post-card__comments-list", children: comments.map((comment) => /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+        CommentItem,
+        {
+          comment,
+          onReplySubmit: (parentId, body) => onCommentSubmit?.(post.id, body, parentId),
+          onCommentLikeToggle,
+          onCommentDelete,
+          pendingCommentLikeIds,
+          pendingReplyIds,
+          pendingCommentDeleteIds
+        },
+        comment.id
+      )) }) : /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { className: "post-card__comments-empty", children: "\u041A\u043E\u043C\u043C\u0435\u043D\u0442\u0430\u0440\u0438\u0435\u0432 \u043F\u043E\u043A\u0430 \u043D\u0435\u0442." }) }),
+      /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("form", { className: "comment-form comments-modal__form", onSubmit: handleCommentSubmit, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+          "input",
+          {
+            className: "comment-form__input",
+            type: "text",
+            value: commentText,
+            maxLength: 1e3,
+            placeholder: "\u0414\u043E\u0431\u0430\u0432\u0438\u0442\u044C \u043A\u043E\u043C\u043C\u0435\u043D\u0442\u0430\u0440\u0438\u0439",
+            onChange: (event) => setCommentText(event.target.value)
+          }
+        ),
+        /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("button", { className: "comment-form__button", type: "submit", disabled: !commentBody || isCommentPending, children: isCommentPending ? "..." : "\u041E\u0442\u043F\u0440\u0430\u0432\u0438\u0442\u044C" })
+      ] })
+    ] })
+  ] });
+}
+function PostCard({
+  post,
+  onLikeToggle,
+  onCommentSubmit,
+  onCommentLikeToggle,
+  onCommentDelete,
+  isLikePending = false,
+  isCommentPending = false,
+  pendingCommentLikeIds = {},
+  pendingReplyIds = {},
+  pendingCommentDeleteIds = {}
+}) {
+  const [commentsOpen, setCommentsOpen] = (0, import_react3.useState)(false);
   const avatarLetter = (post.username?.trim()?.[0] ?? "?").toUpperCase();
   const avatarUrl = resolveMediaUrl(post.avatar_url);
   const caption = post.caption?.trim();
   const likesCount = Number(post.likes_count) || 0;
+  const commentsCount = Number(post.comments_count) || 0;
   const likeButtonLabel = post.liked_by_me ? "\u0423\u0431\u0440\u0430\u0442\u044C \u043B\u0430\u0439\u043A" : "\u041F\u043E\u0441\u0442\u0430\u0432\u0438\u0442\u044C \u043B\u0430\u0439\u043A";
   return /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("article", { className: "post-card", children: [
     /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("header", { className: "post-card__header", children: [
@@ -13153,28 +13329,65 @@ function PostCard({ post, onLikeToggle, isLikePending = false }) {
         loading: "lazy"
       }
     ),
-    /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { className: "post-card__actions", children: /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
-      "button",
-      {
-        className: `post-card__action-button${post.liked_by_me ? " is-active" : ""}`,
-        type: "button",
-        "aria-label": likeButtonLabel,
-        "aria-pressed": post.liked_by_me,
-        disabled: isLikePending,
-        onClick: () => onLikeToggle?.(post.id, post.liked_by_me),
-        children: post.liked_by_me ? "\u2665" : "\u2661"
-      }
-    ) }),
+    /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "post-card__actions", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+        "button",
+        {
+          className: `post-card__action-button${post.liked_by_me ? " is-active" : ""}`,
+          type: "button",
+          "aria-label": likeButtonLabel,
+          "aria-pressed": post.liked_by_me,
+          disabled: isLikePending,
+          onClick: () => onLikeToggle?.(post.id, post.liked_by_me),
+          children: post.liked_by_me ? "\u2665" : "\u2661"
+        }
+      ),
+      /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+        "button",
+        {
+          className: "post-card__action-button",
+          type: "button",
+          "aria-label": "\u041E\u0442\u043A\u0440\u044B\u0442\u044C \u043A\u043E\u043C\u043C\u0435\u043D\u0442\u0430\u0440\u0438\u0438",
+          onClick: () => setCommentsOpen(true),
+          children: /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+            "svg",
+            {
+              className: "post-card__comment-icon",
+              viewBox: "0 0 24 24",
+              "aria-hidden": "true",
+              focusable: "false",
+              children: /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("path", { d: "M20.5 11.4c0 4.1-3.8 7.4-8.5 7.4-1.1 0-2.1-.2-3.1-.5L4 20l1.4-4c-1.2-1.3-1.9-2.9-1.9-4.6C3.5 7.3 7.3 4 12 4s8.5 3.3 8.5 7.4Z" })
+            }
+          )
+        }
+      )
+    ] }),
     /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "post-card__likes", children: [
       likesCount,
       " \u043B\u0430\u0439\u043A\u043E\u0432"
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("p", { className: "post-card__caption", children: caption || "\u0411\u0435\u0437 \u043E\u043F\u0438\u0441\u0430\u043D\u0438\u044F." })
+    /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("p", { className: "post-card__caption", children: caption || "\u0411\u0435\u0437 \u043E\u043F\u0438\u0441\u0430\u043D\u0438\u044F." }),
+    /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+      CommentsModal,
+      {
+        post,
+        open: commentsOpen,
+        onClose: () => setCommentsOpen(false),
+        onCommentSubmit,
+        onCommentLikeToggle,
+        onCommentDelete,
+        isCommentPending,
+        pendingCommentLikeIds,
+        pendingReplyIds,
+        pendingCommentDeleteIds
+      }
+    )
   ] });
 }
-var import_jsx_runtime3;
+var import_react3, import_jsx_runtime3;
 var init_PostCard = __esm({
   "frontend/src/components/PostCard.jsx"() {
+    import_react3 = __toESM(require_react());
     init_api();
     import_jsx_runtime3 = __toESM(require_jsx_runtime());
   }
@@ -13193,8 +13406,8 @@ function ProfileDrawer({
   onToggleProfile,
   onLogout
 }) {
-  const avatarInputRef = (0, import_react3.useRef)(null);
-  (0, import_react3.useEffect)(() => {
+  const avatarInputRef = (0, import_react4.useRef)(null);
+  (0, import_react4.useEffect)(() => {
     if (!open) {
       return void 0;
     }
@@ -13298,10 +13511,10 @@ function ProfileDrawer({
     ] })
   ] });
 }
-var import_react3, import_jsx_runtime4;
+var import_react4, import_jsx_runtime4;
 var init_ProfileDrawer = __esm({
   "frontend/src/components/ProfileDrawer.jsx"() {
-    import_react3 = __toESM(require_react());
+    import_react4 = __toESM(require_react());
     init_api();
     import_jsx_runtime4 = __toESM(require_jsx_runtime());
   }
@@ -13309,24 +13522,28 @@ var init_ProfileDrawer = __esm({
 
 // frontend/src/pages/FeedPage.jsx
 function FeedPage({ navigate, routes, onLogout }) {
-  const [me, setMe] = (0, import_react4.useState)(null);
-  const [posts, setPosts] = (0, import_react4.useState)([]);
-  const [isLoading, setIsLoading] = (0, import_react4.useState)(true);
-  const [feedError, setFeedError] = (0, import_react4.useState)("");
-  const [interactionError, setInteractionError] = (0, import_react4.useState)("");
-  const [pendingLikeIds, setPendingLikeIds] = (0, import_react4.useState)({});
-  const [drawerOpen, setDrawerOpen] = (0, import_react4.useState)(false);
-  const [profileExpanded, setProfileExpanded] = (0, import_react4.useState)(false);
-  const [modalOpen, setModalOpen] = (0, import_react4.useState)(false);
-  const [caption, setCaption] = (0, import_react4.useState)("");
-  const [selectedFile, setSelectedFile] = (0, import_react4.useState)(null);
-  const [previewUrl, setPreviewUrl] = (0, import_react4.useState)("");
-  const [postError, setPostError] = (0, import_react4.useState)("");
-  const [isPosting, setIsPosting] = (0, import_react4.useState)(false);
-  const [avatarEditorOpen, setAvatarEditorOpen] = (0, import_react4.useState)(false);
-  const [avatarDraftUrl, setAvatarDraftUrl] = (0, import_react4.useState)("");
-  const [avatarError, setAvatarError] = (0, import_react4.useState)("");
-  const [isAvatarUploading, setIsAvatarUploading] = (0, import_react4.useState)(false);
+  const [me, setMe] = (0, import_react5.useState)(null);
+  const [posts, setPosts] = (0, import_react5.useState)([]);
+  const [isLoading, setIsLoading] = (0, import_react5.useState)(true);
+  const [feedError, setFeedError] = (0, import_react5.useState)("");
+  const [interactionError, setInteractionError] = (0, import_react5.useState)("");
+  const [pendingLikeIds, setPendingLikeIds] = (0, import_react5.useState)({});
+  const [pendingCommentPostIds, setPendingCommentPostIds] = (0, import_react5.useState)({});
+  const [pendingReplyIds, setPendingReplyIds] = (0, import_react5.useState)({});
+  const [pendingCommentLikeIds, setPendingCommentLikeIds] = (0, import_react5.useState)({});
+  const [pendingCommentDeleteIds, setPendingCommentDeleteIds] = (0, import_react5.useState)({});
+  const [drawerOpen, setDrawerOpen] = (0, import_react5.useState)(false);
+  const [profileExpanded, setProfileExpanded] = (0, import_react5.useState)(false);
+  const [modalOpen, setModalOpen] = (0, import_react5.useState)(false);
+  const [caption, setCaption] = (0, import_react5.useState)("");
+  const [selectedFile, setSelectedFile] = (0, import_react5.useState)(null);
+  const [previewUrl, setPreviewUrl] = (0, import_react5.useState)("");
+  const [postError, setPostError] = (0, import_react5.useState)("");
+  const [isPosting, setIsPosting] = (0, import_react5.useState)(false);
+  const [avatarEditorOpen, setAvatarEditorOpen] = (0, import_react5.useState)(false);
+  const [avatarDraftUrl, setAvatarDraftUrl] = (0, import_react5.useState)("");
+  const [avatarError, setAvatarError] = (0, import_react5.useState)("");
+  const [isAvatarUploading, setIsAvatarUploading] = (0, import_react5.useState)(false);
   const releasePostPreview = () => {
     setPreviewUrl((currentUrl) => {
       if (currentUrl) {
@@ -13382,7 +13599,62 @@ function FeedPage({ navigate, routes, onLogout }) {
       )
     );
   };
-  (0, import_react4.useEffect)(() => {
+  const appendComment = (comments, nextComment) => comments.map(
+    (comment) => comment.id === nextComment.parent_id ? {
+      ...comment,
+      replies: [...comment.replies || [], nextComment]
+    } : {
+      ...comment,
+      replies: appendComment(comment.replies || [], nextComment)
+    }
+  );
+  const updateCommentLike = (comments, nextLikeState) => comments.map((comment) => ({
+    ...comment,
+    likes_count: comment.id === nextLikeState.comment_id ? nextLikeState.likes_count : comment.likes_count,
+    liked_by_me: comment.id === nextLikeState.comment_id ? nextLikeState.liked_by_me : comment.liked_by_me,
+    replies: updateCommentLike(comment.replies || [], nextLikeState)
+  }));
+  const removeComments = (comments, deletedCommentIds) => comments.filter((comment) => !deletedCommentIds.has(comment.id)).map((comment) => ({
+    ...comment,
+    replies: removeComments(comment.replies || [], deletedCommentIds)
+  }));
+  const addCommentToPost = (postId, nextComment) => {
+    setPosts(
+      (currentPosts) => currentPosts.map((post) => {
+        if (post.id !== postId) {
+          return post;
+        }
+        const comments = Array.isArray(post.comments) ? post.comments : [];
+        const nextComments = nextComment.parent_id ? appendComment(comments, nextComment) : [...comments, nextComment];
+        return {
+          ...post,
+          comments: nextComments,
+          comments_count: (Number(post.comments_count) || 0) + 1
+        };
+      })
+    );
+  };
+  const updateCommentLikeState = (nextLikeState) => {
+    setPosts(
+      (currentPosts) => currentPosts.map((post) => ({
+        ...post,
+        comments: updateCommentLike(post.comments || [], nextLikeState)
+      }))
+    );
+  };
+  const deleteCommentsFromPost = (nextDeleteState) => {
+    const deletedCommentIds = new Set(nextDeleteState.deleted_comment_ids || []);
+    setPosts(
+      (currentPosts) => currentPosts.map(
+        (post) => post.id === nextDeleteState.post_id ? {
+          ...post,
+          comments: removeComments(post.comments || [], deletedCommentIds),
+          comments_count: nextDeleteState.comments_count
+        } : post
+      )
+    );
+  };
+  (0, import_react5.useEffect)(() => {
     let active = true;
     const loadFeed = async () => {
       setIsLoading(true);
@@ -13418,14 +13690,14 @@ function FeedPage({ navigate, routes, onLogout }) {
       active = false;
     };
   }, []);
-  (0, import_react4.useEffect)(() => {
+  (0, import_react5.useEffect)(() => {
     return () => {
       if (previewUrl) {
         URL.revokeObjectURL(previewUrl);
       }
     };
   }, [previewUrl]);
-  (0, import_react4.useEffect)(() => {
+  (0, import_react5.useEffect)(() => {
     return () => {
       if (avatarDraftUrl) {
         URL.revokeObjectURL(avatarDraftUrl);
@@ -13570,6 +13842,103 @@ function FeedPage({ navigate, routes, onLogout }) {
       });
     }
   };
+  const handleCommentSubmit = async (postId, body, parentId = null) => {
+    const pendingKey = parentId ?? postId;
+    const isReply = parentId !== null;
+    const pendingState = isReply ? pendingReplyIds : pendingCommentPostIds;
+    if (pendingState[pendingKey]) {
+      return false;
+    }
+    setInteractionError("");
+    const setPendingState = isReply ? setPendingReplyIds : setPendingCommentPostIds;
+    setPendingState((current) => ({
+      ...current,
+      [pendingKey]: true
+    }));
+    try {
+      const nextComment = await api(`/posts/${postId}/comments`, {
+        method: "POST",
+        body: {
+          body,
+          parent_id: parentId
+        },
+        auth: true
+      });
+      addCommentToPost(postId, nextComment);
+      return true;
+    } catch (requestError) {
+      if (requestError.status === 401) {
+        handleUnauthorized();
+        return false;
+      }
+      setInteractionError(requestError.message);
+      return false;
+    } finally {
+      setPendingState((current) => {
+        const nextState = { ...current };
+        delete nextState[pendingKey];
+        return nextState;
+      });
+    }
+  };
+  const handleCommentLikeToggle = async (commentId, likedByMe) => {
+    if (pendingCommentLikeIds[commentId]) {
+      return;
+    }
+    setInteractionError("");
+    setPendingCommentLikeIds((current) => ({
+      ...current,
+      [commentId]: true
+    }));
+    try {
+      const nextLikeState = await api(`/comments/${commentId}/like`, {
+        method: likedByMe ? "DELETE" : "POST",
+        auth: true
+      });
+      updateCommentLikeState(nextLikeState);
+    } catch (requestError) {
+      if (requestError.status === 401) {
+        handleUnauthorized();
+        return;
+      }
+      setInteractionError(requestError.message);
+    } finally {
+      setPendingCommentLikeIds((current) => {
+        const nextState = { ...current };
+        delete nextState[commentId];
+        return nextState;
+      });
+    }
+  };
+  const handleCommentDelete = async (commentId) => {
+    if (pendingCommentDeleteIds[commentId]) {
+      return;
+    }
+    setInteractionError("");
+    setPendingCommentDeleteIds((current) => ({
+      ...current,
+      [commentId]: true
+    }));
+    try {
+      const nextDeleteState = await api(`/comments/${commentId}`, {
+        method: "DELETE",
+        auth: true
+      });
+      deleteCommentsFromPost(nextDeleteState);
+    } catch (requestError) {
+      if (requestError.status === 401) {
+        handleUnauthorized();
+        return;
+      }
+      setInteractionError(requestError.message);
+    } finally {
+      setPendingCommentDeleteIds((current) => {
+        const nextState = { ...current };
+        delete nextState[commentId];
+        return nextState;
+      });
+    }
+  };
   const renderFeedState = () => {
     if (isLoading) {
       return /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { className: "feed-state", children: [
@@ -13595,7 +13964,14 @@ function FeedPage({ navigate, routes, onLogout }) {
       {
         post,
         isLikePending: Boolean(pendingLikeIds[post.id]),
-        onLikeToggle: handleLikeToggle
+        isCommentPending: Boolean(pendingCommentPostIds[post.id]),
+        pendingCommentLikeIds,
+        pendingReplyIds,
+        pendingCommentDeleteIds,
+        onLikeToggle: handleLikeToggle,
+        onCommentSubmit: handleCommentSubmit,
+        onCommentLikeToggle: handleCommentLikeToggle,
+        onCommentDelete: handleCommentDelete
       },
       post.id
     ));
@@ -13660,10 +14036,10 @@ function FeedPage({ navigate, routes, onLogout }) {
     )
   ] });
 }
-var import_react4, import_jsx_runtime5, MAX_IMAGE_SIZE_BYTES;
+var import_react5, import_jsx_runtime5, MAX_IMAGE_SIZE_BYTES;
 var init_FeedPage = __esm({
   "frontend/src/pages/FeedPage.jsx"() {
-    import_react4 = __toESM(require_react());
+    import_react5 = __toESM(require_react());
     init_AvatarCropModal();
     init_CreatePostModal();
     init_PostCard();
@@ -13696,13 +14072,13 @@ var init_AuthCard = __esm({
 
 // frontend/src/pages/LoginPage.jsx
 function LoginPage({ navigate, routes }) {
-  const [form, setForm] = (0, import_react5.useState)({
+  const [form, setForm] = (0, import_react6.useState)({
     username: "",
     password: ""
   });
-  const [error, setError] = (0, import_react5.useState)("");
-  const [isSubmitting, setIsSubmitting] = (0, import_react5.useState)(false);
-  (0, import_react5.useEffect)(() => {
+  const [error, setError] = (0, import_react6.useState)("");
+  const [isSubmitting, setIsSubmitting] = (0, import_react6.useState)(false);
+  (0, import_react6.useEffect)(() => {
     const token = getToken();
     if (!token) {
       return void 0;
@@ -13788,10 +14164,10 @@ function LoginPage({ navigate, routes }) {
     }
   );
 }
-var import_react5, import_jsx_runtime7;
+var import_react6, import_jsx_runtime7;
 var init_LoginPage = __esm({
   "frontend/src/pages/LoginPage.jsx"() {
-    import_react5 = __toESM(require_react());
+    import_react6 = __toESM(require_react());
     init_AuthCard();
     init_api();
     import_jsx_runtime7 = __toESM(require_jsx_runtime());
@@ -13800,15 +14176,15 @@ var init_LoginPage = __esm({
 
 // frontend/src/pages/RegisterPage.jsx
 function RegisterPage({ navigate, routes }) {
-  const [form, setForm] = (0, import_react6.useState)({
+  const [form, setForm] = (0, import_react7.useState)({
     username: "",
     email: "",
     full_name: "",
     password: ""
   });
-  const [error, setError] = (0, import_react6.useState)("");
-  const [isSubmitting, setIsSubmitting] = (0, import_react6.useState)(false);
-  (0, import_react6.useEffect)(() => {
+  const [error, setError] = (0, import_react7.useState)("");
+  const [isSubmitting, setIsSubmitting] = (0, import_react7.useState)(false);
+  (0, import_react7.useEffect)(() => {
     const token = getToken();
     if (!token) {
       return void 0;
@@ -13924,10 +14300,10 @@ function RegisterPage({ navigate, routes }) {
     }
   );
 }
-var import_react6, import_jsx_runtime8;
+var import_react7, import_jsx_runtime8;
 var init_RegisterPage = __esm({
   "frontend/src/pages/RegisterPage.jsx"() {
-    import_react6 = __toESM(require_react());
+    import_react7 = __toESM(require_react());
     init_AuthCard();
     init_api();
     import_jsx_runtime8 = __toESM(require_jsx_runtime());
@@ -13946,8 +14322,8 @@ function applyHistory(pathname, replace = false) {
   window.history[method](null, "", pathname);
 }
 function App() {
-  const [route, setRoute] = (0, import_react7.useState)(() => normalizePath(window.location.pathname));
-  (0, import_react7.useEffect)(() => {
+  const [route, setRoute] = (0, import_react8.useState)(() => normalizePath(window.location.pathname));
+  (0, import_react8.useEffect)(() => {
     const syncRoute = () => {
       const nextRoute = normalizePath(window.location.pathname);
       if (nextRoute !== window.location.pathname) {
@@ -13979,10 +14355,10 @@ function App() {
   }
   return /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(LoginPage, { navigate, routes: ROUTES });
 }
-var import_react7, import_jsx_runtime9, ROUTES, KNOWN_PATHS;
+var import_react8, import_jsx_runtime9, ROUTES, KNOWN_PATHS;
 var init_App = __esm({
   "frontend/src/App.jsx"() {
-    import_react7 = __toESM(require_react());
+    import_react8 = __toESM(require_react());
     init_api();
     init_FeedPage();
     init_LoginPage();
@@ -14006,13 +14382,13 @@ var init_styles = __esm({
 // frontend/src/main.jsx
 var require_main = __commonJS({
   "frontend/src/main.jsx"() {
-    var import_react8 = __toESM(require_react());
+    var import_react9 = __toESM(require_react());
     var import_client = __toESM(require_client());
     init_App();
     init_styles();
     var import_jsx_runtime10 = __toESM(require_jsx_runtime());
     (0, import_client.createRoot)(document.getElementById("root")).render(
-      /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(import_react8.default.StrictMode, { children: /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(App, {}) })
+      /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(import_react9.default.StrictMode, { children: /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(App, {}) })
     );
   }
 });
