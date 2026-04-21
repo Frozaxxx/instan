@@ -12716,6 +12716,13 @@ function setToken(token) {
 }
 function clearToken() {
   window.localStorage.removeItem(TOKEN_STORAGE_KEY);
+  window.localStorage.removeItem(ROLE_STORAGE_KEY);
+}
+function getRole() {
+  return window.localStorage.getItem(ROLE_STORAGE_KEY);
+}
+function setRole(role) {
+  window.localStorage.setItem(ROLE_STORAGE_KEY, role);
 }
 async function api(path, { method = "GET", body = null, auth = false } = {}) {
   const headers = new Headers();
@@ -12765,10 +12772,11 @@ function formatPostDate(value) {
     minute: "2-digit"
   }).format(date);
 }
-var TOKEN_STORAGE_KEY;
+var TOKEN_STORAGE_KEY, ROLE_STORAGE_KEY;
 var init_api = __esm({
   "frontend/src/lib/api.js"() {
     TOKEN_STORAGE_KEY = "token";
+    ROLE_STORAGE_KEY = "role";
   }
 });
 
@@ -12814,6 +12822,408 @@ var require_jsx_runtime = __commonJS({
   }
 });
 
+// frontend/src/components/AuthCard.jsx
+function AuthCard({ title, description, children, footer }) {
+  return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: "auth-screen", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: "ambient-backdrop", "aria-hidden": "true" }),
+    /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: "auth-card", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: "auth-card__eyebrow", children: "instan / react" }),
+      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h1", { className: "auth-card__title", children: title }),
+      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { className: "auth-card__description", children: description }),
+      children,
+      footer ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: "auth-card__footer", children: footer }) : null
+    ] })
+  ] });
+}
+var import_jsx_runtime;
+var init_AuthCard = __esm({
+  "frontend/src/components/AuthCard.jsx"() {
+    import_jsx_runtime = __toESM(require_jsx_runtime());
+  }
+});
+
+// frontend/src/pages/AdminLoginPage.jsx
+function AdminLoginPage({ navigate, routes }) {
+  const [form, setForm] = (0, import_react.useState)({ username: "", password: "" });
+  const [error, setError] = (0, import_react.useState)("");
+  const [isSubmitting, setIsSubmitting] = (0, import_react.useState)(false);
+  const handleChange = (event) => {
+    const { name, value } = event.target;
+    setForm((current) => ({
+      ...current,
+      [name]: value
+    }));
+  };
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    setError("");
+    setIsSubmitting(true);
+    try {
+      const response = await api("/login", {
+        method: "POST",
+        body: {
+          username: form.username.trim(),
+          password: form.password
+        }
+      });
+      if (response.role !== "admin") {
+        throw new Error("\u041D\u0443\u0436\u043D\u044B \u0443\u0447\u0451\u0442\u043D\u044B\u0435 \u0434\u0430\u043D\u043D\u044B\u0435 \u0430\u0434\u043C\u0438\u043D\u0438\u0441\u0442\u0440\u0430\u0442\u043E\u0440\u0430");
+      }
+      setToken(response.access_token);
+      setRole("admin");
+      navigate(routes.adminLogin, { replace: true });
+    } catch (requestError) {
+      setError(requestError.message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+  return /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+    AuthCard,
+    {
+      title: "\u0410\u0434\u043C\u0438\u043D-\u043F\u0430\u043D\u0435\u043B\u044C",
+      description: "\u0412\u0445\u043E\u0434 \u0434\u043B\u044F \u0430\u0434\u043C\u0438\u043D\u0438\u0441\u0442\u0440\u0430\u0442\u043E\u0440\u0430. \u041F\u043E\u0441\u043B\u0435 \u0430\u0432\u0442\u043E\u0440\u0438\u0437\u0430\u0446\u0438\u0438 \u043E\u0442\u043A\u0440\u043E\u0435\u0442\u0441\u044F \u043F\u0430\u043D\u0435\u043B\u044C \u0443\u043F\u0440\u0430\u0432\u043B\u0435\u043D\u0438\u044F \u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u0435\u043B\u044F\u043C\u0438, \u043F\u043E\u0441\u0442\u0430\u043C\u0438 \u0438 \u043A\u043E\u043C\u043C\u0435\u043D\u0442\u0430\u0440\u0438\u044F\u043C\u0438.",
+      footer: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { className: "text-link", type: "button", onClick: () => navigate(routes.login), children: "\u0412\u0435\u0440\u043D\u0443\u0442\u044C\u0441\u044F \u043A \u043E\u0431\u044B\u0447\u043D\u043E\u043C\u0443 \u0432\u0445\u043E\u0434\u0443" }),
+      children: /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("form", { className: "auth-form", onSubmit: handleSubmit, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("label", { className: "form-field", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { className: "form-field__label", children: "Admin Username" }),
+          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+            "input",
+            {
+              className: "form-field__input",
+              name: "username",
+              value: form.username,
+              onChange: handleChange,
+              required: true
+            }
+          )
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("label", { className: "form-field", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { className: "form-field__label", children: "Admin Password" }),
+          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+            "input",
+            {
+              className: "form-field__input",
+              name: "password",
+              type: "password",
+              value: form.password,
+              onChange: handleChange,
+              required: true
+            }
+          )
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { className: "form-error", "aria-live": "polite", children: error }),
+        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { className: "button button--primary", type: "submit", disabled: isSubmitting, children: isSubmitting ? "\u041F\u0440\u043E\u0432\u0435\u0440\u044F\u0435\u043C..." : "\u041E\u0442\u043A\u0440\u044B\u0442\u044C \u043F\u0430\u043D\u0435\u043B\u044C" })
+      ] })
+    }
+  );
+}
+var import_react, import_jsx_runtime2;
+var init_AdminLoginPage = __esm({
+  "frontend/src/pages/AdminLoginPage.jsx"() {
+    import_react = __toESM(require_react());
+    init_AuthCard();
+    init_api();
+    import_jsx_runtime2 = __toESM(require_jsx_runtime());
+  }
+});
+
+// frontend/src/pages/AdminPage.jsx
+function MetricCard({ label, value }) {
+  return /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "admin-metric", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { className: "admin-metric__value", children: value }),
+    /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { className: "admin-metric__label", children: label })
+  ] });
+}
+function AdminPostModal({ post, open, onClose, onDelete, isDeletePending }) {
+  if (!open || !post) {
+    return null;
+  }
+  return /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(import_jsx_runtime3.Fragment, { children: [
+    /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { className: "modal-backdrop profile-modal__backdrop is-visible", onClick: onClose }),
+    /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("section", { className: "admin-post-modal", role: "dialog", "aria-modal": "true", "aria-labelledby": `admin-post-${post.id}`, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("header", { className: "admin-post-modal__header", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { id: `admin-post-${post.id}`, className: "admin-post-modal__title", children: [
+          "\u041F\u043E\u0441\u0442 #",
+          post.id,
+          " \u043E\u0442 @",
+          post.username
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("button", { className: "icon-button", type: "button", "aria-label": "\u0417\u0430\u043A\u0440\u044B\u0442\u044C \u043F\u043E\u0441\u0442", onClick: onClose, children: "\xD7" })
+      ] }),
+      /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "admin-post-modal__body", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+          "img",
+          {
+            className: "admin-post-modal__image",
+            src: resolveMediaUrl(post.image_url),
+            alt: `\u041F\u043E\u0441\u0442 \u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u0435\u043B\u044F ${post.username}`
+          }
+        ),
+        /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "admin-post-modal__meta", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("span", { children: [
+            "\u041B\u0430\u0439\u043A\u0438: ",
+            post.likes_count
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("span", { children: [
+            "\u041A\u043E\u043C\u043C\u0435\u043D\u0442\u0430\u0440\u0438\u0438: ",
+            post.comments_count
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { children: new Date(post.created_at).toLocaleString("ru-RU") })
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { className: "admin-post-modal__caption", children: post.caption || "\u0411\u0435\u0437 \u043E\u043F\u0438\u0441\u0430\u043D\u0438\u044F" }),
+        /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+          "button",
+          {
+            className: "button button--secondary admin-danger",
+            type: "button",
+            disabled: isDeletePending,
+            onClick: () => onDelete?.(post.id),
+            children: isDeletePending ? "..." : "\u0423\u0434\u0430\u043B\u0438\u0442\u044C \u043F\u043E\u0441\u0442"
+          }
+        )
+      ] })
+    ] })
+  ] });
+}
+function AdminPage({ navigate, routes }) {
+  const [metrics, setMetrics] = (0, import_react2.useState)(null);
+  const [users, setUsers] = (0, import_react2.useState)([]);
+  const [posts, setPosts] = (0, import_react2.useState)([]);
+  const [comments, setComments] = (0, import_react2.useState)([]);
+  const [selectedPost, setSelectedPost] = (0, import_react2.useState)(null);
+  const [error, setError] = (0, import_react2.useState)("");
+  const [loading, setLoading] = (0, import_react2.useState)(true);
+  const [pendingKeys, setPendingKeys] = (0, import_react2.useState)({});
+  const handleAdminLogout = () => {
+    clearToken();
+    navigate(routes.login, { replace: true });
+  };
+  const loadAdminData = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const [nextMetrics, nextUsers, nextPosts, nextComments] = await Promise.all([
+        api("/admin/metrics", { auth: true }),
+        api("/admin/users", { auth: true }),
+        api("/admin/posts", { auth: true }),
+        api("/admin/comments", { auth: true })
+      ]);
+      setMetrics(nextMetrics);
+      setUsers(Array.isArray(nextUsers) ? nextUsers : []);
+      setPosts(Array.isArray(nextPosts) ? nextPosts : []);
+      setComments(Array.isArray(nextComments) ? nextComments : []);
+      setSelectedPost((current) => {
+        if (!current) {
+          return current;
+        }
+        return (Array.isArray(nextPosts) ? nextPosts : []).find((post) => post.id === current.id) || null;
+      });
+    } catch (requestError) {
+      if (requestError.status === 401 || requestError.status === 403) {
+        clearToken();
+        navigate(routes.adminLogin, { replace: true });
+        return;
+      }
+      setError(requestError.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+  (0, import_react2.useEffect)(() => {
+    if (getRole() !== "admin") {
+      navigate(routes.adminLogin, { replace: true });
+      return;
+    }
+    loadAdminData();
+  }, [navigate, routes.adminLogin]);
+  const withPending = async (key, action) => {
+    if (pendingKeys[key]) {
+      return;
+    }
+    setPendingKeys((current) => ({ ...current, [key]: true }));
+    setError("");
+    try {
+      await action();
+      await loadAdminData();
+    } catch (requestError) {
+      setError(requestError.message);
+    } finally {
+      setPendingKeys((current) => {
+        const next = { ...current };
+        delete next[key];
+        return next;
+      });
+    }
+  };
+  return /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "admin-screen", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { className: "ambient-backdrop", "aria-hidden": "true" }),
+    /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "admin-frame", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("header", { className: "admin-topbar", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { className: "admin-topbar__title", children: "\u0410\u0434\u043C\u0438\u043D-\u043F\u0430\u043D\u0435\u043B\u044C" }),
+          /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { className: "admin-topbar__subtitle", children: "\u0423\u043F\u0440\u0430\u0432\u043B\u0435\u043D\u0438\u0435 \u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u0435\u043B\u044F\u043C\u0438, \u043F\u043E\u0441\u0442\u0430\u043C\u0438 \u0438 \u043A\u043E\u043C\u043C\u0435\u043D\u0442\u0430\u0440\u0438\u044F\u043C\u0438" })
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "admin-topbar__actions", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("button", { className: "button button--secondary", type: "button", onClick: loadAdminData, children: "\u041E\u0431\u043D\u043E\u0432\u0438\u0442\u044C" }),
+          /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("button", { className: "button button--secondary", type: "button", onClick: handleAdminLogout, children: "\u0412\u044B\u0439\u0442\u0438" })
+        ] })
+      ] }),
+      error ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { className: "feed-inline-error", children: error }) : null,
+      loading ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { className: "feed-state", children: /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { className: "feed-state__title", children: "\u0417\u0430\u0433\u0440\u0443\u0436\u0430\u0435\u043C \u0430\u0434\u043C\u0438\u043D-\u0434\u0430\u043D\u043D\u044B\u0435..." }) }) : /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("main", { className: "admin-content", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("section", { className: "admin-section", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { className: "admin-section__title", children: "\u041C\u0435\u0442\u0440\u0438\u043A\u0438" }),
+          /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "admin-metrics", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(MetricCard, { label: "\u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u0435\u043B\u0438", value: metrics?.users_count ?? 0 }),
+            /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(MetricCard, { label: "\u0437\u0430\u0431\u043B\u043E\u043A\u0438\u0440\u043E\u0432\u0430\u043D\u044B", value: metrics?.blocked_users_count ?? 0 }),
+            /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(MetricCard, { label: "\u043F\u043E\u0441\u0442\u044B", value: metrics?.posts_count ?? 0 }),
+            /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(MetricCard, { label: "\u043A\u043E\u043C\u043C\u0435\u043D\u0442\u0430\u0440\u0438\u0438", value: metrics?.comments_count ?? 0 }),
+            /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(MetricCard, { label: "\u043B\u0430\u0439\u043A\u0438 \u043F\u043E\u0441\u0442\u043E\u0432", value: metrics?.post_likes_count ?? 0 }),
+            /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(MetricCard, { label: "\u043B\u0430\u0439\u043A\u0438 \u043A\u043E\u043C\u043C\u0435\u043D\u0442\u0430\u0440\u0438\u0435\u0432", value: metrics?.comment_likes_count ?? 0 })
+          ] })
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("section", { className: "admin-section", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { className: "admin-section__title", children: "\u041F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u0435\u043B\u0438" }),
+          /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { className: "admin-table", children: users.map((user) => /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "admin-row", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "admin-row__main", children: [
+              /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "admin-row__title", children: [
+                "@",
+                user.username,
+                " ",
+                user.is_blocked ? "(\u0437\u0430\u0431\u043B\u043E\u043A\u0438\u0440\u043E\u0432\u0430\u043D)" : ""
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "admin-row__meta", children: [
+                user.full_name,
+                " \u2022 ",
+                user.email,
+                " \u2022 \u043F\u043E\u0441\u0442\u044B: ",
+                user.posts_count,
+                " \u2022 \u043A\u043E\u043C\u043C\u0435\u043D\u0442\u0430\u0440\u0438\u0438: ",
+                user.comments_count
+              ] })
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+              "button",
+              {
+                className: "button button--secondary",
+                type: "button",
+                disabled: Boolean(pendingKeys[`user-${user.id}`]),
+                onClick: () => withPending(
+                  `user-${user.id}`,
+                  () => api(`/admin/users/${user.id}/${user.is_blocked ? "unblock" : "block"}`, {
+                    method: "POST",
+                    auth: true
+                  })
+                ),
+                children: user.is_blocked ? "\u0420\u0430\u0437\u0431\u043B\u043E\u043A\u0438\u0440\u043E\u0432\u0430\u0442\u044C" : "\u0417\u0430\u0431\u043B\u043E\u043A\u0438\u0440\u043E\u0432\u0430\u0442\u044C"
+              }
+            )
+          ] }, user.id)) })
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("section", { className: "admin-section", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { className: "admin-section__title", children: "\u041F\u043E\u0441\u0442\u044B" }),
+          /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { className: "admin-table", children: posts.map((post) => /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "admin-row admin-row--interactive", onClick: () => setSelectedPost(post), role: "button", tabIndex: 0, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "admin-row__main", children: [
+              /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "admin-row__title", children: [
+                "\u041F\u043E\u0441\u0442 #",
+                post.id,
+                " \u043E\u0442 @",
+                post.username
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "admin-row__meta", children: [
+                "\u043B\u0430\u0439\u043A\u0438: ",
+                post.likes_count,
+                " \u2022 \u043A\u043E\u043C\u043C\u0435\u043D\u0442\u0430\u0440\u0438\u0438: ",
+                post.comments_count
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { className: "admin-row__body admin-row__body--clamped", children: post.caption || "\u0411\u0435\u0437 \u043E\u043F\u0438\u0441\u0430\u043D\u0438\u044F" })
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+              "button",
+              {
+                className: "button button--secondary admin-danger",
+                type: "button",
+                disabled: Boolean(pendingKeys[`post-${post.id}`]),
+                onClick: (event) => {
+                  event.stopPropagation();
+                  withPending(
+                    `post-${post.id}`,
+                    () => api(`/admin/posts/${post.id}`, {
+                      method: "DELETE",
+                      auth: true
+                    })
+                  );
+                },
+                children: "\u0423\u0434\u0430\u043B\u0438\u0442\u044C \u043F\u043E\u0441\u0442"
+              }
+            )
+          ] }, post.id)) })
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("section", { className: "admin-section", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { className: "admin-section__title", children: "\u041A\u043E\u043C\u043C\u0435\u043D\u0442\u0430\u0440\u0438\u0438" }),
+          /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { className: "admin-table", children: comments.map((comment) => /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "admin-row", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "admin-row__main", children: [
+              /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "admin-row__title", children: [
+                "\u041A\u043E\u043C\u043C\u0435\u043D\u0442\u0430\u0440\u0438\u0439 #",
+                comment.id,
+                " \u043E\u0442 @",
+                comment.username
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "admin-row__meta", children: [
+                "\u043F\u043E\u0441\u0442: ",
+                comment.post_id,
+                " \u2022 \u043E\u0442\u0432\u0435\u0442\u043E\u0432: ",
+                comment.replies_count
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { className: "admin-row__body", children: comment.body })
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+              "button",
+              {
+                className: "button button--secondary admin-danger",
+                type: "button",
+                disabled: Boolean(pendingKeys[`comment-${comment.id}`]),
+                onClick: () => withPending(
+                  `comment-${comment.id}`,
+                  () => api(`/admin/comments/${comment.id}`, {
+                    method: "DELETE",
+                    auth: true
+                  })
+                ),
+                children: "\u0423\u0434\u0430\u043B\u0438\u0442\u044C \u043A\u043E\u043C\u043C\u0435\u043D\u0442\u0430\u0440\u0438\u0439"
+              }
+            )
+          ] }, comment.id)) })
+        ] })
+      ] })
+    ] }),
+    /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+      AdminPostModal,
+      {
+        post: selectedPost,
+        open: Boolean(selectedPost),
+        isDeletePending: Boolean(selectedPost && pendingKeys[`post-${selectedPost.id}`]),
+        onClose: () => setSelectedPost(null),
+        onDelete: (postId) => withPending(
+          `post-${postId}`,
+          () => api(`/admin/posts/${postId}`, {
+            method: "DELETE",
+            auth: true
+          })
+        ).then(() => setSelectedPost(null))
+      }
+    )
+  ] });
+}
+var import_react2, import_jsx_runtime3;
+var init_AdminPage = __esm({
+  "frontend/src/pages/AdminPage.jsx"() {
+    import_react2 = __toESM(require_react());
+    init_api();
+    import_jsx_runtime3 = __toESM(require_jsx_runtime());
+  }
+});
+
 // frontend/src/components/AvatarCropModal.jsx
 function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
@@ -12851,13 +13261,13 @@ function AvatarCropModal({
   onClose,
   onSave
 }) {
-  const [zoom, setZoom] = (0, import_react.useState)(MIN_ZOOM);
-  const [imageSize, setImageSize] = (0, import_react.useState)({ width: 0, height: 0 });
-  const [position, setPosition] = (0, import_react.useState)({ x: 0, y: 0 });
-  const imageRef = (0, import_react.useRef)(null);
-  const dragStateRef = (0, import_react.useRef)(null);
+  const [zoom, setZoom] = (0, import_react3.useState)(MIN_ZOOM);
+  const [imageSize, setImageSize] = (0, import_react3.useState)({ width: 0, height: 0 });
+  const [position, setPosition] = (0, import_react3.useState)({ x: 0, y: 0 });
+  const imageRef = (0, import_react3.useRef)(null);
+  const dragStateRef = (0, import_react3.useRef)(null);
   const metrics = getViewportMetrics(imageSize, zoom);
-  (0, import_react.useEffect)(() => {
+  (0, import_react3.useEffect)(() => {
     if (!open || !sourceUrl) {
       return void 0;
     }
@@ -12876,7 +13286,7 @@ function AvatarCropModal({
       image.onload = null;
     };
   }, [open, sourceUrl]);
-  (0, import_react.useEffect)(() => {
+  (0, import_react3.useEffect)(() => {
     setPosition((current) => {
       const next = clampPosition(current, metrics);
       if (next.x === current.x && next.y === current.y) {
@@ -12885,7 +13295,7 @@ function AvatarCropModal({
       return next;
     });
   }, [metrics.width, metrics.height, metrics.maxOffsetX, metrics.maxOffsetY]);
-  (0, import_react.useEffect)(() => {
+  (0, import_react3.useEffect)(() => {
     if (!open) {
       return void 0;
     }
@@ -12971,16 +13381,16 @@ function AvatarCropModal({
     height: metrics.height ? `${metrics.height}px` : "auto",
     transform: `translate(calc(-50% + ${position.x}px), calc(-50% + ${position.y}px))`
   };
-  return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
-    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: "modal-backdrop is-visible", onClick: onClose, "aria-hidden": "true" }),
-    /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: "avatar-crop-modal", role: "dialog", "aria-modal": "true", "aria-labelledby": "avatar-crop-title", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: "avatar-crop-modal__header", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: "avatar-crop-modal__title", id: "avatar-crop-title", children: "\u041E\u0431\u0440\u0435\u0437\u043A\u0430 \u0430\u0432\u0430\u0442\u0430\u0440\u0430" }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: "icon-button", type: "button", onClick: onClose, "aria-label": "\u0417\u0430\u043A\u0440\u044B\u0442\u044C \u043E\u043A\u043D\u043E", children: "\xD7" })
+  return /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(import_jsx_runtime4.Fragment, { children: [
+    /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "modal-backdrop is-visible", onClick: onClose, "aria-hidden": "true" }),
+    /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("section", { className: "avatar-crop-modal", role: "dialog", "aria-modal": "true", "aria-labelledby": "avatar-crop-title", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "avatar-crop-modal__header", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "avatar-crop-modal__title", id: "avatar-crop-title", children: "\u041E\u0431\u0440\u0435\u0437\u043A\u0430 \u0430\u0432\u0430\u0442\u0430\u0440\u0430" }),
+        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("button", { className: "icon-button", type: "button", onClick: onClose, "aria-label": "\u0417\u0430\u043A\u0440\u044B\u0442\u044C \u043E\u043A\u043D\u043E", children: "\xD7" })
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: "avatar-crop-modal__body", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: "avatar-crop-modal__hint", children: "\u041F\u0435\u0440\u0435\u0442\u0430\u0441\u043A\u0438\u0432\u0430\u0439 \u0444\u043E\u0442\u043E \u0432\u043D\u0443\u0442\u0440\u0438 \u043A\u0440\u0443\u0433\u0430 \u0438 \u043C\u0435\u043D\u044F\u0439 \u043C\u0430\u0441\u0448\u0442\u0430\u0431, \u0447\u0442\u043E\u0431\u044B \u0432\u044B\u0431\u0440\u0430\u0442\u044C \u043E\u0431\u043B\u0430\u0441\u0442\u044C \u0430\u0432\u0430\u0442\u0430\u0440\u043A\u0438." }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+      /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "avatar-crop-modal__body", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "avatar-crop-modal__hint", children: "\u041F\u0435\u0440\u0435\u0442\u0430\u0441\u043A\u0438\u0432\u0430\u0439 \u0444\u043E\u0442\u043E \u0432\u043D\u0443\u0442\u0440\u0438 \u043A\u0440\u0443\u0433\u0430 \u0438 \u043C\u0435\u043D\u044F\u0439 \u043C\u0430\u0441\u0448\u0442\u0430\u0431, \u0447\u0442\u043E\u0431\u044B \u0432\u044B\u0431\u0440\u0430\u0442\u044C \u043E\u0431\u043B\u0430\u0441\u0442\u044C \u0430\u0432\u0430\u0442\u0430\u0440\u043A\u0438." }),
+        /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(
           "div",
           {
             className: "avatar-crop-stage",
@@ -12989,7 +13399,7 @@ function AvatarCropModal({
             onPointerUp: handlePointerUp,
             onPointerCancel: handlePointerUp,
             children: [
-              sourceUrl ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+              sourceUrl ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
                 "img",
                 {
                   ref: imageRef,
@@ -13000,14 +13410,14 @@ function AvatarCropModal({
                   style: previewTransform
                 }
               ) : null,
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: "avatar-crop-stage__shade", "aria-hidden": "true" }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: "avatar-crop-stage__frame", "aria-hidden": "true" })
+              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "avatar-crop-stage__shade", "aria-hidden": "true" }),
+              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "avatar-crop-stage__frame", "aria-hidden": "true" })
             ]
           }
         ),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: "avatar-crop-modal__slider", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "\u041C\u0430\u0441\u0448\u0442\u0430\u0431" }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+        /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("label", { className: "avatar-crop-modal__slider", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { children: "\u041C\u0430\u0441\u0448\u0442\u0430\u0431" }),
+          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
             "input",
             {
               type: "range",
@@ -13019,20 +13429,20 @@ function AvatarCropModal({
             }
           )
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: "form-error", "aria-live": "polite", children: error }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: "avatar-crop-modal__actions", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: "button button--secondary", type: "button", onClick: onClose, disabled: isSubmitting, children: "\u041E\u0442\u043C\u0435\u043D\u0430" }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: "button button--primary", type: "button", onClick: handleSave, disabled: isSubmitting || !metrics.width, children: isSubmitting ? "\u0421\u043E\u0445\u0440\u0430\u043D\u044F\u0435\u043C..." : "\u0421\u043E\u0445\u0440\u0430\u043D\u0438\u0442\u044C \u0430\u0432\u0430\u0442\u0430\u0440" })
+        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "form-error", "aria-live": "polite", children: error }),
+        /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "avatar-crop-modal__actions", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("button", { className: "button button--secondary", type: "button", onClick: onClose, disabled: isSubmitting, children: "\u041E\u0442\u043C\u0435\u043D\u0430" }),
+          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("button", { className: "button button--primary", type: "button", onClick: handleSave, disabled: isSubmitting || !metrics.width, children: isSubmitting ? "\u0421\u043E\u0445\u0440\u0430\u043D\u044F\u0435\u043C..." : "\u0421\u043E\u0445\u0440\u0430\u043D\u0438\u0442\u044C \u0430\u0432\u0430\u0442\u0430\u0440" })
         ] })
       ] })
     ] })
   ] });
 }
-var import_react, import_jsx_runtime, VIEWPORT_SIZE, OUTPUT_SIZE, MIN_ZOOM, MAX_ZOOM;
+var import_react3, import_jsx_runtime4, VIEWPORT_SIZE, OUTPUT_SIZE, MIN_ZOOM, MAX_ZOOM;
 var init_AvatarCropModal = __esm({
   "frontend/src/components/AvatarCropModal.jsx"() {
-    import_react = __toESM(require_react());
-    import_jsx_runtime = __toESM(require_jsx_runtime());
+    import_react3 = __toESM(require_react());
+    import_jsx_runtime4 = __toESM(require_jsx_runtime());
     VIEWPORT_SIZE = 280;
     OUTPUT_SIZE = 512;
     MIN_ZOOM = 1;
@@ -13052,7 +13462,7 @@ function CreatePostModal({
   onFileChange,
   onSubmit
 }) {
-  (0, import_react2.useEffect)(() => {
+  (0, import_react4.useEffect)(() => {
     if (!open) {
       return void 0;
     }
@@ -13067,17 +13477,17 @@ function CreatePostModal({
   if (!open) {
     return null;
   }
-  return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(import_jsx_runtime2.Fragment, { children: [
-    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { className: "modal-backdrop is-visible", onClick: onClose, "aria-hidden": "true" }),
-    /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("section", { className: "create-post-modal", role: "dialog", "aria-modal": "true", "aria-labelledby": "create-post-title", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { className: "create-post-modal__header", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { className: "create-post-modal__title", id: "create-post-title", children: "\u041D\u043E\u0432\u044B\u0439 \u043F\u043E\u0441\u0442" }),
-        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { className: "icon-button", type: "button", onClick: onClose, "aria-label": "\u0417\u0430\u043A\u0440\u044B\u0442\u044C \u043E\u043A\u043D\u043E", children: "\u2715" })
+  return /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)(import_jsx_runtime5.Fragment, { children: [
+    /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("div", { className: "modal-backdrop is-visible", onClick: onClose, "aria-hidden": "true" }),
+    /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("section", { className: "create-post-modal", role: "dialog", "aria-modal": "true", "aria-labelledby": "create-post-title", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { className: "create-post-modal__header", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("div", { className: "create-post-modal__title", id: "create-post-title", children: "\u041D\u043E\u0432\u044B\u0439 \u043F\u043E\u0441\u0442" }),
+        /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("button", { className: "icon-button", type: "button", onClick: onClose, "aria-label": "\u0417\u0430\u043A\u0440\u044B\u0442\u044C \u043E\u043A\u043D\u043E", children: "\u2715" })
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("form", { className: "create-post-modal__form", onSubmit, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("label", { className: "form-field", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { className: "form-field__label", children: "\u0424\u043E\u0442\u043E" }),
-          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+      /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("form", { className: "create-post-modal__form", onSubmit, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("label", { className: "form-field", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("span", { className: "form-field__label", children: "\u0424\u043E\u0442\u043E" }),
+          /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
             "input",
             {
               className: "form-field__input",
@@ -13088,10 +13498,10 @@ function CreatePostModal({
             }
           )
         ] }),
-        previewUrl ? /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("img", { className: "create-post-modal__preview", src: previewUrl, alt: "\u041F\u0440\u0435\u0434\u043F\u0440\u043E\u0441\u043C\u043E\u0442\u0440 \u043F\u043E\u0441\u0442\u0430" }) : /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { className: "create-post-modal__placeholder", children: "\u0412\u044B\u0431\u0435\u0440\u0438 \u0438\u0437\u043E\u0431\u0440\u0430\u0436\u0435\u043D\u0438\u0435, \u0447\u0442\u043E\u0431\u044B \u0443\u0432\u0438\u0434\u0435\u0442\u044C \u043F\u0440\u0435\u0432\u044C\u044E." }),
-        /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("label", { className: "form-field", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { className: "form-field__label", children: "\u041E\u043F\u0438\u0441\u0430\u043D\u0438\u0435" }),
-          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+        previewUrl ? /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("img", { className: "create-post-modal__preview", src: previewUrl, alt: "\u041F\u0440\u0435\u0434\u043F\u0440\u043E\u0441\u043C\u043E\u0442\u0440 \u043F\u043E\u0441\u0442\u0430" }) : /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("div", { className: "create-post-modal__placeholder", children: "\u0412\u044B\u0431\u0435\u0440\u0438 \u0438\u0437\u043E\u0431\u0440\u0430\u0436\u0435\u043D\u0438\u0435, \u0447\u0442\u043E\u0431\u044B \u0443\u0432\u0438\u0434\u0435\u0442\u044C \u043F\u0440\u0435\u0432\u044C\u044E." }),
+        /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("label", { className: "form-field", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("span", { className: "form-field__label", children: "\u041E\u043F\u0438\u0441\u0430\u043D\u0438\u0435" }),
+          /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
             "textarea",
             {
               className: "form-field__input form-field__input--textarea",
@@ -13103,34 +13513,44 @@ function CreatePostModal({
             }
           )
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { className: "create-post-modal__footer", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { className: "form-error", "aria-live": "polite", children: error }),
-          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { className: "button button--primary", type: "submit", disabled: isSubmitting, children: isSubmitting ? "\u041F\u0443\u0431\u043B\u0438\u043A\u0443\u0435\u043C..." : "\u041E\u043F\u0443\u0431\u043B\u0438\u043A\u043E\u0432\u0430\u0442\u044C" })
+        /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { className: "create-post-modal__footer", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("div", { className: "form-error", "aria-live": "polite", children: error }),
+          /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("button", { className: "button button--primary", type: "submit", disabled: isSubmitting, children: isSubmitting ? "\u041F\u0443\u0431\u043B\u0438\u043A\u0443\u0435\u043C..." : "\u041E\u043F\u0443\u0431\u043B\u0438\u043A\u043E\u0432\u0430\u0442\u044C" })
         ] })
       ] })
     ] })
   ] });
 }
-var import_react2, import_jsx_runtime2;
+var import_react4, import_jsx_runtime5;
 var init_CreatePostModal = __esm({
   "frontend/src/components/CreatePostModal.jsx"() {
-    import_react2 = __toESM(require_react());
-    import_jsx_runtime2 = __toESM(require_jsx_runtime());
+    import_react4 = __toESM(require_react());
+    import_jsx_runtime5 = __toESM(require_jsx_runtime());
   }
 });
 
 // frontend/src/components/PostCard.jsx
-function CommentItem({
+function AuthorBadge({ authorId, username, avatarUrl, onProfileOpen }) {
+  const avatarLetter = (username?.trim()?.[0] ?? "?").toUpperCase();
+  const resolvedAvatarUrl = resolveMediaUrl(avatarUrl);
+  return /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("button", { className: "author-badge", type: "button", onClick: () => onProfileOpen?.(authorId), children: [
+    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("div", { className: "author-badge__avatar", children: resolvedAvatarUrl ? /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("img", { className: "author-badge__avatar-image", src: resolvedAvatarUrl, alt: `\u0410\u0432\u0430\u0442\u0430\u0440 \u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u0435\u043B\u044F ${username}` }) : /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("span", { "aria-hidden": "true", children: avatarLetter }) }),
+    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("span", { className: "author-badge__name", children: username })
+  ] });
+}
+function CommentCard({
   comment,
+  onProfileOpen,
   onReplySubmit,
   onCommentLikeToggle,
   onCommentDelete,
   pendingCommentLikeIds,
   pendingReplyIds,
-  pendingCommentDeleteIds
+  pendingCommentDeleteIds,
+  isReply = false
 }) {
-  const [replyText, setReplyText] = (0, import_react3.useState)("");
-  const [replyOpen, setReplyOpen] = (0, import_react3.useState)(false);
+  const [replyText, setReplyText] = (0, import_react5.useState)("");
+  const [replyOpen, setReplyOpen] = (0, import_react5.useState)(false);
   const likesCount = Number(comment.likes_count) || 0;
   const isLikePending = Boolean(pendingCommentLikeIds?.[comment.id]);
   const isReplyPending = Boolean(pendingReplyIds?.[comment.id]);
@@ -13148,75 +13568,97 @@ function CommentItem({
       setReplyOpen(false);
     }
   };
-  return /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "comment", children: [
-    /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "comment__body", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { className: "comment__author", children: comment.username }),
-      /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { children: comment.body })
-    ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "comment__meta", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { children: formatPostDate(comment.created_at) }),
-      /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(
-        "button",
-        {
-          className: `comment__like-button${comment.liked_by_me ? " is-active" : ""}`,
-          type: "button",
-          "aria-label": likeButtonLabel,
-          "aria-pressed": comment.liked_by_me,
-          disabled: isLikePending,
-          onClick: () => onCommentLikeToggle?.(comment.id, comment.liked_by_me),
-          children: [
-            comment.liked_by_me ? "\u2665" : "\u2661",
-            " ",
-            likesCount
-          ]
-        }
-      ),
-      /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("button", { className: "comment__reply-button", type: "button", onClick: () => setReplyOpen((current) => !current), children: "\u041E\u0442\u0432\u0435\u0442\u0438\u0442\u044C" }),
-      comment.can_delete ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
-        "button",
-        {
-          className: "comment__delete-button",
-          type: "button",
-          "aria-label": "\u0423\u0434\u0430\u043B\u0438\u0442\u044C \u043A\u043E\u043C\u043C\u0435\u043D\u0442\u0430\u0440\u0438\u0439",
-          disabled: isDeletePending,
-          onClick: () => onCommentDelete?.(comment.id),
-          children: "\u0423\u0434\u0430\u043B\u0438\u0442\u044C"
-        }
-      ) : null
-    ] }),
-    replyOpen ? /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("form", { className: "comment-form comment-form--reply", onSubmit: handleReplySubmit, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
-        "input",
-        {
-          className: "comment-form__input",
-          type: "text",
-          value: replyText,
-          maxLength: 1e3,
-          placeholder: `\u041E\u0442\u0432\u0435\u0442\u0438\u0442\u044C ${comment.username}`,
-          onChange: (event) => setReplyText(event.target.value)
-        }
-      ),
-      /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("button", { className: "comment-form__button", type: "submit", disabled: !replyBody || isReplyPending, children: isReplyPending ? "..." : "\u041E\u0442\u0432\u0435\u0442" })
-    ] }) : null,
-    comment.replies?.length ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { className: "comment__replies", children: comment.replies.map((reply) => /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
-      CommentItem,
+  return /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("article", { className: `comment-card${isReply ? " comment-card--reply" : ""}`, children: /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { className: "comment-card__row", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+      AuthorBadge,
       {
-        comment: reply,
-        onReplySubmit,
-        onCommentLikeToggle,
-        onCommentDelete,
-        pendingCommentLikeIds,
-        pendingReplyIds,
-        pendingCommentDeleteIds
-      },
-      reply.id
-    )) }) : null
+        authorId: comment.author_id,
+        username: comment.username,
+        avatarUrl: comment.avatar_url,
+        onProfileOpen
+      }
+    ),
+    /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { className: "comment-card__content", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { className: "comment-card__body", children: [
+        comment.reply_to_username ? /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(
+          "button",
+          {
+            className: "comment-card__reply-tag",
+            type: "button",
+            onClick: () => onProfileOpen?.(comment.reply_to_user_id ?? comment.author_id),
+            children: [
+              "@",
+              comment.reply_to_username
+            ]
+          }
+        ) : null,
+        /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("span", { children: comment.body })
+      ] }),
+      /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { className: "comment-card__meta", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("span", { children: formatPostDate(comment.created_at) }),
+        /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(
+          "button",
+          {
+            className: `comment__like-button${comment.liked_by_me ? " is-active" : ""}`,
+            type: "button",
+            "aria-label": likeButtonLabel,
+            "aria-pressed": comment.liked_by_me,
+            disabled: isLikePending,
+            onClick: () => onCommentLikeToggle?.(comment.id, comment.liked_by_me),
+            children: [
+              comment.liked_by_me ? "\u2665" : "\u2661",
+              " ",
+              likesCount
+            ]
+          }
+        ),
+        /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("button", { className: "comment__reply-button", type: "button", onClick: () => setReplyOpen((current) => !current), children: "\u041E\u0442\u0432\u0435\u0442\u0438\u0442\u044C" }),
+        comment.can_delete ? /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+          "button",
+          {
+            className: "comment__delete-button",
+            type: "button",
+            "aria-label": "\u0423\u0434\u0430\u043B\u0438\u0442\u044C \u043A\u043E\u043C\u043C\u0435\u043D\u0442\u0430\u0440\u0438\u0439",
+            disabled: isDeletePending,
+            onClick: () => onCommentDelete?.(comment.id),
+            children: "\u0423\u0434\u0430\u043B\u0438\u0442\u044C"
+          }
+        ) : null
+      ] }),
+      replyOpen ? /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("form", { className: "comment-form comment-form--reply", onSubmit: handleReplySubmit, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+          "input",
+          {
+            className: "comment-form__input",
+            type: "text",
+            value: replyText,
+            maxLength: 1e3,
+            placeholder: `\u041E\u0442\u0432\u0435\u0442\u0438\u0442\u044C ${comment.username}`,
+            onChange: (event) => setReplyText(event.target.value)
+          }
+        ),
+        /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("button", { className: "comment-form__button", type: "submit", disabled: !replyBody || isReplyPending, children: isReplyPending ? "..." : "\u041E\u0442\u0432\u0435\u0442" })
+      ] }) : null
+    ] })
+  ] }) });
+}
+function CommentThread(props) {
+  const { comment } = props;
+  const replies = Array.isArray(comment.replies) ? comment.replies : [];
+  const [repliesOpen, setRepliesOpen] = (0, import_react5.useState)(false);
+  return /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { className: "comment-thread", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(CommentCard, { ...props }),
+    replies.length ? /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { className: "comment-thread__replies", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("button", { className: "comment-thread__toggle", type: "button", onClick: () => setRepliesOpen((current) => !current), children: repliesOpen ? "\u0421\u043A\u0440\u044B\u0442\u044C \u043E\u0442\u0432\u0435\u0442\u044B" : `\u041F\u043E\u043A\u0430\u0437\u0430\u0442\u044C \u043E\u0442\u0432\u0435\u0442\u044B (${replies.length})` }),
+      repliesOpen ? /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("div", { className: "comment-thread__list", children: replies.map((reply) => /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(CommentCard, { ...props, comment: reply, isReply: true }, reply.id)) }) : null
+    ] }) : null
   ] });
 }
 function CommentsModal({
   post,
   open,
   onClose,
+  onProfileOpen,
   onCommentSubmit,
   onCommentLikeToggle,
   onCommentDelete,
@@ -13225,7 +13667,7 @@ function CommentsModal({
   pendingReplyIds,
   pendingCommentDeleteIds
 }) {
-  const [commentText, setCommentText] = (0, import_react3.useState)("");
+  const [commentText, setCommentText] = (0, import_react5.useState)("");
   if (!open) {
     return null;
   }
@@ -13242,21 +13684,22 @@ function CommentsModal({
       setCommentText("");
     }
   };
-  return /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(import_jsx_runtime3.Fragment, { children: [
-    /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { className: "modal-backdrop comments-modal__backdrop is-visible", onClick: onClose }),
-    /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("section", { className: "comments-modal", role: "dialog", "aria-modal": "true", "aria-labelledby": `comments-title-${post.id}`, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("header", { className: "comments-modal__header", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { id: `comments-title-${post.id}`, className: "comments-modal__title", children: [
+  return /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(import_jsx_runtime6.Fragment, { children: [
+    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("div", { className: "modal-backdrop comments-modal__backdrop is-visible", onClick: onClose }),
+    /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("section", { className: "comments-modal", role: "dialog", "aria-modal": "true", "aria-labelledby": `comments-title-${post.id}`, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("header", { className: "comments-modal__header", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { id: `comments-title-${post.id}`, className: "comments-modal__title", children: [
           "\u041A\u043E\u043C\u043C\u0435\u043D\u0442\u0430\u0440\u0438\u0438 (",
           commentsCount,
           ")"
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("button", { className: "icon-button", type: "button", "aria-label": "\u0417\u0430\u043A\u0440\u044B\u0442\u044C \u043A\u043E\u043C\u043C\u0435\u043D\u0442\u0430\u0440\u0438\u0438", onClick: onClose, children: "\xD7" })
+        /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("button", { className: "icon-button", type: "button", "aria-label": "\u0417\u0430\u043A\u0440\u044B\u0442\u044C \u043A\u043E\u043C\u043C\u0435\u043D\u0442\u0430\u0440\u0438\u0438", onClick: onClose, children: "\xD7" })
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { className: "comments-modal__body", children: comments.length ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { className: "post-card__comments-list", children: comments.map((comment) => /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
-        CommentItem,
+      /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("div", { className: "comments-modal__body", children: comments.length ? /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("div", { className: "post-card__comments-list", children: comments.map((comment) => /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+        CommentThread,
         {
           comment,
+          onProfileOpen,
           onReplySubmit: (parentId, body) => onCommentSubmit?.(post.id, body, parentId),
           onCommentLikeToggle,
           onCommentDelete,
@@ -13265,9 +13708,9 @@ function CommentsModal({
           pendingCommentDeleteIds
         },
         comment.id
-      )) }) : /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { className: "post-card__comments-empty", children: "\u041A\u043E\u043C\u043C\u0435\u043D\u0442\u0430\u0440\u0438\u0435\u0432 \u043F\u043E\u043A\u0430 \u043D\u0435\u0442." }) }),
-      /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("form", { className: "comment-form comments-modal__form", onSubmit: handleCommentSubmit, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+      )) }) : /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("div", { className: "post-card__comments-empty", children: "\u041A\u043E\u043C\u043C\u0435\u043D\u0442\u0430\u0440\u0438\u0435\u0432 \u043F\u043E\u043A\u0430 \u043D\u0435\u0442." }) }),
+      /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("form", { className: "comment-form comments-modal__form", onSubmit: handleCommentSubmit, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
           "input",
           {
             className: "comment-form__input",
@@ -13278,49 +13721,99 @@ function CommentsModal({
             onChange: (event) => setCommentText(event.target.value)
           }
         ),
-        /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("button", { className: "comment-form__button", type: "submit", disabled: !commentBody || isCommentPending, children: isCommentPending ? "..." : "\u041E\u0442\u043F\u0440\u0430\u0432\u0438\u0442\u044C" })
+        /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("button", { className: "comment-form__button", type: "submit", disabled: !commentBody || isCommentPending, children: isCommentPending ? "..." : "\u041E\u0442\u043F\u0440\u0430\u0432\u0438\u0442\u044C" })
       ] })
     ] })
   ] });
 }
+function PendingDeleteCard({ post, secondsLeft, isRestorePending, onRestore }) {
+  return /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("article", { className: "post-card post-card--pending-delete", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("div", { className: "post-card__pending-title", children: "\u041F\u043E\u0441\u0442 \u0441\u043A\u0440\u044B\u0442 \u043F\u0435\u0440\u0435\u0434 \u0443\u0434\u0430\u043B\u0435\u043D\u0438\u0435\u043C" }),
+    /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { className: "post-card__pending-text", children: [
+      "\u0415\u0433\u043E \u043C\u043E\u0436\u043D\u043E \u0432\u043E\u0441\u0441\u0442\u0430\u043D\u043E\u0432\u0438\u0442\u044C \u0435\u0449\u0451 ",
+      secondsLeft,
+      " \u0441\u0435\u043A."
+    ] }),
+    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("button", { className: "post-card__restore-button", type: "button", disabled: isRestorePending, onClick: () => onRestore?.(post.id), children: isRestorePending ? "..." : "\u0412\u043E\u0441\u0441\u0442\u0430\u043D\u043E\u0432\u0438\u0442\u044C" })
+  ] });
+}
 function PostCard({
   post,
+  onProfileOpen,
+  onFollowToggle,
+  onPostDelete,
+  onPostRestore,
   onLikeToggle,
   onCommentSubmit,
   onCommentLikeToggle,
   onCommentDelete,
   isLikePending = false,
+  isFollowPending = false,
+  isDeletePending = false,
+  isRestorePending = false,
   isCommentPending = false,
   pendingCommentLikeIds = {},
   pendingReplyIds = {},
   pendingCommentDeleteIds = {}
 }) {
-  const [commentsOpen, setCommentsOpen] = (0, import_react3.useState)(false);
-  const avatarLetter = (post.username?.trim()?.[0] ?? "?").toUpperCase();
-  const avatarUrl = resolveMediaUrl(post.avatar_url);
+  const [commentsOpen, setCommentsOpen] = (0, import_react5.useState)(false);
+  const [secondsLeft, setSecondsLeft] = (0, import_react5.useState)(0);
   const caption = post.caption?.trim();
   const likesCount = Number(post.likes_count) || 0;
   const commentsCount = Number(post.comments_count) || 0;
   const likeButtonLabel = post.liked_by_me ? "\u0423\u0431\u0440\u0430\u0442\u044C \u043B\u0430\u0439\u043A" : "\u041F\u043E\u0441\u0442\u0430\u0432\u0438\u0442\u044C \u043B\u0430\u0439\u043A";
-  return /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("article", { className: "post-card", children: [
-    /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("header", { className: "post-card__header", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "post-card__author", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { className: "post-card__avatar", children: avatarUrl ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
-          "img",
+  const isOwnPost = Boolean(post.can_delete);
+  const isPendingDelete = Boolean(post.delete_scheduled_at);
+  (0, import_react5.useEffect)(() => {
+    if (!post.delete_scheduled_at) {
+      setSecondsLeft(0);
+      return void 0;
+    }
+    const updateTimer = () => {
+      const diffMs = new Date(post.delete_scheduled_at).getTime() - Date.now();
+      setSecondsLeft(Math.max(0, Math.ceil(diffMs / 1e3)));
+    };
+    updateTimer();
+    const timerId = window.setInterval(updateTimer, 1e3);
+    return () => window.clearInterval(timerId);
+  }, [post.delete_scheduled_at]);
+  if (isPendingDelete) {
+    return /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+      PendingDeleteCard,
+      {
+        post,
+        secondsLeft,
+        isRestorePending,
+        onRestore: onPostRestore
+      }
+    );
+  }
+  return /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("article", { className: "post-card", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("header", { className: "post-card__header", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { className: "post-card__author", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+          AuthorBadge,
           {
-            className: "post-card__avatar-image",
-            src: avatarUrl,
-            alt: `\u0410\u0432\u0430\u0442\u0430\u0440 \u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u0435\u043B\u044F ${post.username}`
+            authorId: post.author_id,
+            username: post.username,
+            avatarUrl: post.avatar_url,
+            onProfileOpen
           }
-        ) : /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { "aria-hidden": "true", children: avatarLetter }) }),
-        /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { children: [
-          /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { className: "post-card__username", children: post.username }),
-          /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { className: "post-card__time", children: formatPostDate(post.created_at) })
-        ] })
+        ),
+        /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("div", { className: "post-card__time", children: formatPostDate(post.created_at) })
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { className: "post-card__menu", "aria-hidden": "true", children: "..." })
+      isOwnPost ? /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("button", { className: "post-card__delete-button", type: "button", disabled: isDeletePending, onClick: () => onPostDelete?.(post.id), children: isDeletePending ? "..." : "\u0423\u0434\u0430\u043B\u0438\u0442\u044C \u043F\u043E\u0441\u0442" }) : onFollowToggle ? /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+        "button",
+        {
+          className: `post-card__follow-button${post.is_following_author ? " is-active" : ""}`,
+          type: "button",
+          disabled: isFollowPending,
+          onClick: () => onFollowToggle(post.author_id, post.is_following_author),
+          children: isFollowPending ? "..." : post.is_following_author ? "\u041F\u043E\u0434\u043F\u0438\u0441\u0430\u043D" : "\u041F\u043E\u0434\u043F\u0438\u0441\u0430\u0442\u044C\u0441\u044F"
+        }
+      ) : null
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
       "img",
       {
         className: "post-card__media",
@@ -13329,8 +13822,8 @@ function PostCard({
         loading: "lazy"
       }
     ),
-    /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "post-card__actions", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+    /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { className: "post-card__actions", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
         "button",
         {
           className: `post-card__action-button${post.liked_by_me ? " is-active" : ""}`,
@@ -13342,37 +13835,24 @@ function PostCard({
           children: post.liked_by_me ? "\u2665" : "\u2661"
         }
       ),
-      /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
-        "button",
-        {
-          className: "post-card__action-button",
-          type: "button",
-          "aria-label": "\u041E\u0442\u043A\u0440\u044B\u0442\u044C \u043A\u043E\u043C\u043C\u0435\u043D\u0442\u0430\u0440\u0438\u0438",
-          onClick: () => setCommentsOpen(true),
-          children: /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
-            "svg",
-            {
-              className: "post-card__comment-icon",
-              viewBox: "0 0 24 24",
-              "aria-hidden": "true",
-              focusable: "false",
-              children: /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("path", { d: "M20.5 11.4c0 4.1-3.8 7.4-8.5 7.4-1.1 0-2.1-.2-3.1-.5L4 20l1.4-4c-1.2-1.3-1.9-2.9-1.9-4.6C3.5 7.3 7.3 4 12 4s8.5 3.3 8.5 7.4Z" })
-            }
-          )
-        }
-      )
+      /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("button", { className: "post-card__action-button", type: "button", "aria-label": "\u041E\u0442\u043A\u0440\u044B\u0442\u044C \u043A\u043E\u043C\u043C\u0435\u043D\u0442\u0430\u0440\u0438\u0438", onClick: () => setCommentsOpen(true), children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("svg", { className: "post-card__comment-icon", viewBox: "0 0 24 24", "aria-hidden": "true", focusable: "false", children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("path", { d: "M20.5 11.4c0 4.1-3.8 7.4-8.5 7.4-1.1 0-2.1-.2-3.1-.5L4 20l1.4-4c-1.2-1.3-1.9-2.9-1.9-4.6C3.5 7.3 7.3 4 12 4s8.5 3.3 8.5 7.4Z" }) }) })
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "post-card__likes", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { className: "post-card__likes", children: [
       likesCount,
       " \u043B\u0430\u0439\u043A\u043E\u0432"
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("p", { className: "post-card__caption", children: caption || "\u0411\u0435\u0437 \u043E\u043F\u0438\u0441\u0430\u043D\u0438\u044F." }),
-    /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+    /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("button", { className: "post-card__comments-link", type: "button", onClick: () => setCommentsOpen(true), children: [
+      "\u041A\u043E\u043C\u043C\u0435\u043D\u0442\u0430\u0440\u0438\u0438: ",
+      commentsCount
+    ] }),
+    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("p", { className: "post-card__caption", children: caption || "\u0411\u0435\u0437 \u043E\u043F\u0438\u0441\u0430\u043D\u0438\u044F." }),
+    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
       CommentsModal,
       {
         post,
         open: commentsOpen,
         onClose: () => setCommentsOpen(false),
+        onProfileOpen,
         onCommentSubmit,
         onCommentLikeToggle,
         onCommentDelete,
@@ -13384,12 +13864,12 @@ function PostCard({
     )
   ] });
 }
-var import_react3, import_jsx_runtime3;
+var import_react5, import_jsx_runtime6;
 var init_PostCard = __esm({
   "frontend/src/components/PostCard.jsx"() {
-    import_react3 = __toESM(require_react());
+    import_react5 = __toESM(require_react());
     init_api();
-    import_jsx_runtime3 = __toESM(require_jsx_runtime());
+    import_jsx_runtime6 = __toESM(require_jsx_runtime());
   }
 });
 
@@ -13398,16 +13878,14 @@ function ProfileDrawer({
   me,
   open,
   postCount,
-  profileExpanded,
   avatarFeedback,
   isAvatarUploading,
   onAvatarSelect,
   onClose,
-  onToggleProfile,
   onLogout
 }) {
-  const avatarInputRef = (0, import_react4.useRef)(null);
-  (0, import_react4.useEffect)(() => {
+  const avatarInputRef = (0, import_react6.useRef)(null);
+  (0, import_react6.useEffect)(() => {
     if (!open) {
       return void 0;
     }
@@ -13429,8 +13907,8 @@ function ProfileDrawer({
     onAvatarSelect(nextFile);
     event.target.value = "";
   };
-  return /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(import_jsx_runtime4.Fragment, { children: [
-    /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)(import_jsx_runtime7.Fragment, { children: [
+    /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(
       "div",
       {
         className: `drawer-backdrop ${open ? "is-visible" : ""}`,
@@ -13438,23 +13916,23 @@ function ProfileDrawer({
         "aria-hidden": !open
       }
     ),
-    /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("aside", { className: `profile-drawer ${open ? "is-open" : ""}`, "aria-hidden": !open, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "profile-drawer__header", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("button", { className: "icon-button", type: "button", onClick: onClose, "aria-label": "\u0417\u0430\u043A\u0440\u044B\u0442\u044C \u043C\u0435\u043D\u044E", children: "\u2190" }),
-        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "profile-drawer__title", children: "\u0410\u043A\u043A\u0430\u0443\u043D\u0442" })
+    /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("aside", { className: `profile-drawer ${open ? "is-open" : ""}`, "aria-hidden": !open, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("div", { className: "profile-drawer__header", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("button", { className: "icon-button", type: "button", onClick: onClose, "aria-label": "\u0417\u0430\u043A\u0440\u044B\u0442\u044C \u043C\u0435\u043D\u044E", children: "\u2190" }),
+        /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("div", { className: "profile-drawer__title", children: "\u0410\u043A\u043A\u0430\u0443\u043D\u0442" })
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "profile-drawer__body", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("section", { className: "profile-drawer__summary", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "profile-drawer__avatar-shell", children: [
-            /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "profile-drawer__avatar", children: avatarUrl ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+      /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("div", { className: "profile-drawer__body", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("section", { className: "profile-drawer__summary", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("div", { className: "profile-drawer__avatar-shell", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("div", { className: "profile-drawer__avatar", children: avatarUrl ? /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(
               "img",
               {
                 className: "profile-drawer__avatar-image",
                 src: avatarUrl,
                 alt: `\u0410\u0432\u0430\u0442\u0430\u0440 \u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u0435\u043B\u044F ${me?.username || "user"}`
               }
-            ) : /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { "aria-hidden": "true", children: avatarLetter }) }),
-            /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+            ) : /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("span", { "aria-hidden": "true", children: avatarLetter }) }),
+            /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(
               "button",
               {
                 className: "avatar-edit-button",
@@ -13462,10 +13940,10 @@ function ProfileDrawer({
                 onClick: handleAvatarButtonClick,
                 "aria-label": "\u0418\u0437\u043C\u0435\u043D\u0438\u0442\u044C \u0430\u0432\u0430\u0442\u0430\u0440",
                 disabled: isAvatarUploading,
-                children: /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: "avatar-edit-button__icon", "aria-hidden": "true", children: "\u270E" })
+                children: /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("span", { className: "avatar-edit-button__icon", "aria-hidden": "true", children: "\u270E" })
               }
             ),
-            /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+            /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(
               "input",
               {
                 ref: avatarInputRef,
@@ -13476,74 +13954,153 @@ function ProfileDrawer({
               }
             )
           ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { children: [
-            /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "profile-drawer__name", children: me?.full_name || me?.username || "..." }),
-            /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "profile-drawer__handle", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("div", { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("div", { className: "profile-drawer__name", children: me?.full_name || me?.username || "..." }),
+            /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("div", { className: "profile-drawer__handle", children: [
               "@",
               me?.username || "user"
             ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "profile-drawer__meta", children: me?.email || "..." }),
-            /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: `profile-drawer__hint ${avatarFeedback ? "is-visible" : ""}`, children: avatarFeedback || "\u041D\u0430\u0436\u043C\u0438 \u043D\u0430 \u043A\u0430\u0440\u0430\u043D\u0434\u0430\u0448, \u0447\u0442\u043E\u0431\u044B \u0441\u043C\u0435\u043D\u0438\u0442\u044C \u0444\u043E\u0442\u043E." })
+            /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("div", { className: "profile-drawer__meta", children: me?.email || "..." }),
+            /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("div", { className: `profile-drawer__hint ${avatarFeedback ? "is-visible" : ""}`, children: avatarFeedback || "\u041D\u0430\u0436\u043C\u0438 \u043D\u0430 \u043A\u0430\u0440\u0430\u043D\u0434\u0430\u0448, \u0447\u0442\u043E\u0431\u044B \u0441\u043C\u0435\u043D\u0438\u0442\u044C \u0444\u043E\u0442\u043E." })
           ] })
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "profile-drawer__actions", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("button", { className: "drawer-action", type: "button", onClick: onToggleProfile, children: profileExpanded ? "\u0421\u043A\u0440\u044B\u0442\u044C \u043F\u0440\u043E\u0444\u0438\u043B\u044C" : "\u041E\u0442\u043A\u0440\u044B\u0442\u044C \u043F\u0440\u043E\u0444\u0438\u043B\u044C" }),
-          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("button", { className: "drawer-action drawer-action--danger", type: "button", onClick: onLogout, children: "\u0412\u044B\u0439\u0442\u0438" })
-        ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("section", { className: `profile-drawer__details ${profileExpanded ? "is-open" : ""}`, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "profile-drawer__section-title", children: "\u0421\u0432\u043E\u0434\u043A\u0430 \u043F\u0440\u043E\u0444\u0438\u043B\u044F" }),
-          /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "profile-stats", children: [
-            /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "profile-stats__card", children: [
-              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "profile-stats__value", children: postCount }),
-              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "profile-stats__label", children: "\u043F\u043E\u0441\u0442\u044B" })
+        /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("section", { className: "profile-drawer__details is-open", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("div", { className: "profile-drawer__section-title", children: "\u0421\u0432\u043E\u0434\u043A\u0430 \u043F\u0440\u043E\u0444\u0438\u043B\u044F" }),
+          /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("div", { className: "profile-stats profile-stats--four", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("div", { className: "profile-stats__card", children: [
+              /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("div", { className: "profile-stats__value", children: postCount }),
+              /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("div", { className: "profile-stats__label", children: "\u043F\u043E\u0441\u0442\u044B" })
             ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "profile-stats__card", children: [
-              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "profile-stats__value", children: me?.followers_count ?? 0 }),
-              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "profile-stats__label", children: "\u043F\u043E\u0434\u043F\u0438\u0441\u0447\u0438\u043A\u0438" })
+            /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("div", { className: "profile-stats__card", children: [
+              /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("div", { className: "profile-stats__value", children: me?.likes_count ?? 0 }),
+              /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("div", { className: "profile-stats__label", children: "\u043B\u0430\u0439\u043A\u0438" })
             ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "profile-stats__card", children: [
-              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "profile-stats__value", children: me?.following_count ?? 0 }),
-              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "profile-stats__label", children: "\u043F\u043E\u0434\u043F\u0438\u0441\u043A\u0438" })
+            /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("div", { className: "profile-stats__card", children: [
+              /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("div", { className: "profile-stats__value", children: me?.followers_count ?? 0 }),
+              /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("div", { className: "profile-stats__label", children: "\u043F\u043E\u0434\u043F\u0438\u0441\u0447\u0438\u043A\u0438" })
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("div", { className: "profile-stats__card", children: [
+              /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("div", { className: "profile-stats__value", children: me?.following_count ?? 0 }),
+              /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("div", { className: "profile-stats__label", children: "\u043F\u043E\u0434\u043F\u0438\u0441\u043A\u0438" })
             ] })
           ] })
-        ] })
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("div", { className: "profile-drawer__actions", children: /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("button", { className: "drawer-action drawer-action--danger", type: "button", onClick: onLogout, children: "\u0412\u044B\u0439\u0442\u0438" }) })
       ] })
     ] })
   ] });
 }
-var import_react4, import_jsx_runtime4;
+var import_react6, import_jsx_runtime7;
 var init_ProfileDrawer = __esm({
   "frontend/src/components/ProfileDrawer.jsx"() {
-    import_react4 = __toESM(require_react());
+    import_react6 = __toESM(require_react());
     init_api();
-    import_jsx_runtime4 = __toESM(require_jsx_runtime());
+    import_jsx_runtime7 = __toESM(require_jsx_runtime());
+  }
+});
+
+// frontend/src/components/UserProfileModal.jsx
+function UserProfileModal({ profile, open, isFollowPending, onClose, onFollowToggle }) {
+  (0, import_react7.useEffect)(() => {
+    if (!open) {
+      return void 0;
+    }
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") {
+        onClose?.();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [open, onClose]);
+  if (!open || !profile) {
+    return null;
+  }
+  const avatarLetter = (profile.username?.trim()?.[0] ?? "?").toUpperCase();
+  const avatarUrl = resolveMediaUrl(profile.avatar_url);
+  return /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)(import_jsx_runtime8.Fragment, { children: [
+    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("div", { className: "modal-backdrop profile-modal__backdrop is-visible", onClick: onClose }),
+    /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("section", { className: "profile-modal", role: "dialog", "aria-modal": "true", "aria-labelledby": `profile-title-${profile.id}`, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("header", { className: "profile-modal__header", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("div", { id: `profile-title-${profile.id}`, className: "profile-modal__title", children: "\u041F\u0440\u043E\u0444\u0438\u043B\u044C" }),
+        /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("button", { className: "icon-button", type: "button", "aria-label": "\u0417\u0430\u043A\u0440\u044B\u0442\u044C \u043F\u0440\u043E\u0444\u0438\u043B\u044C", onClick: onClose, children: "\xD7" })
+      ] }),
+      /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { className: "profile-modal__body", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { className: "profile-modal__identity", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("div", { className: "profile-modal__avatar", children: avatarUrl ? /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("img", { className: "profile-modal__avatar-image", src: avatarUrl, alt: `\u0410\u0432\u0430\u0442\u0430\u0440 \u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u0435\u043B\u044F ${profile.username}` }) : /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("span", { "aria-hidden": "true", children: avatarLetter }) }),
+          /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { className: "profile-modal__text", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("div", { className: "profile-modal__name", children: profile.full_name || profile.username }),
+            /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { className: "profile-modal__handle", children: [
+              "@",
+              profile.username
+            ] })
+          ] })
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { className: "profile-modal__stats", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { className: "profile-modal__stat", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("div", { className: "profile-modal__stat-value", children: profile.posts_count ?? 0 }),
+            /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("div", { className: "profile-modal__stat-label", children: "\u043F\u043E\u0441\u0442\u044B" })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { className: "profile-modal__stat", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("div", { className: "profile-modal__stat-value", children: profile.followers_count ?? 0 }),
+            /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("div", { className: "profile-modal__stat-label", children: "\u043F\u043E\u0434\u043F\u0438\u0441\u0447\u0438\u043A\u0438" })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { className: "profile-modal__stat", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("div", { className: "profile-modal__stat-value", children: profile.following_count ?? 0 }),
+            /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("div", { className: "profile-modal__stat-label", children: "\u043F\u043E\u0434\u043F\u0438\u0441\u043A\u0438" })
+          ] })
+        ] }),
+        !profile.is_me ? /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
+          "button",
+          {
+            className: `profile-modal__follow-button${profile.is_following ? " is-active" : ""}`,
+            type: "button",
+            disabled: isFollowPending,
+            onClick: () => onFollowToggle?.(profile.id, profile.is_following),
+            children: isFollowPending ? "..." : profile.is_following ? "\u0412\u044B \u043F\u043E\u0434\u043F\u0438\u0441\u0430\u043D\u044B" : "\u041F\u043E\u0434\u043F\u0438\u0441\u0430\u0442\u044C\u0441\u044F"
+          }
+        ) : null
+      ] })
+    ] })
+  ] });
+}
+var import_react7, import_jsx_runtime8;
+var init_UserProfileModal = __esm({
+  "frontend/src/components/UserProfileModal.jsx"() {
+    import_react7 = __toESM(require_react());
+    init_api();
+    import_jsx_runtime8 = __toESM(require_jsx_runtime());
   }
 });
 
 // frontend/src/pages/FeedPage.jsx
 function FeedPage({ navigate, routes, onLogout }) {
-  const [me, setMe] = (0, import_react5.useState)(null);
-  const [posts, setPosts] = (0, import_react5.useState)([]);
-  const [isLoading, setIsLoading] = (0, import_react5.useState)(true);
-  const [feedError, setFeedError] = (0, import_react5.useState)("");
-  const [interactionError, setInteractionError] = (0, import_react5.useState)("");
-  const [pendingLikeIds, setPendingLikeIds] = (0, import_react5.useState)({});
-  const [pendingCommentPostIds, setPendingCommentPostIds] = (0, import_react5.useState)({});
-  const [pendingReplyIds, setPendingReplyIds] = (0, import_react5.useState)({});
-  const [pendingCommentLikeIds, setPendingCommentLikeIds] = (0, import_react5.useState)({});
-  const [pendingCommentDeleteIds, setPendingCommentDeleteIds] = (0, import_react5.useState)({});
-  const [drawerOpen, setDrawerOpen] = (0, import_react5.useState)(false);
-  const [profileExpanded, setProfileExpanded] = (0, import_react5.useState)(false);
-  const [modalOpen, setModalOpen] = (0, import_react5.useState)(false);
-  const [caption, setCaption] = (0, import_react5.useState)("");
-  const [selectedFile, setSelectedFile] = (0, import_react5.useState)(null);
-  const [previewUrl, setPreviewUrl] = (0, import_react5.useState)("");
-  const [postError, setPostError] = (0, import_react5.useState)("");
-  const [isPosting, setIsPosting] = (0, import_react5.useState)(false);
-  const [avatarEditorOpen, setAvatarEditorOpen] = (0, import_react5.useState)(false);
-  const [avatarDraftUrl, setAvatarDraftUrl] = (0, import_react5.useState)("");
-  const [avatarError, setAvatarError] = (0, import_react5.useState)("");
-  const [isAvatarUploading, setIsAvatarUploading] = (0, import_react5.useState)(false);
+  const [me, setMe] = (0, import_react8.useState)(null);
+  const [posts, setPosts] = (0, import_react8.useState)([]);
+  const [isLoading, setIsLoading] = (0, import_react8.useState)(true);
+  const [feedError, setFeedError] = (0, import_react8.useState)("");
+  const [interactionError, setInteractionError] = (0, import_react8.useState)("");
+  const [pendingLikeIds, setPendingLikeIds] = (0, import_react8.useState)({});
+  const [pendingCommentPostIds, setPendingCommentPostIds] = (0, import_react8.useState)({});
+  const [pendingReplyIds, setPendingReplyIds] = (0, import_react8.useState)({});
+  const [pendingCommentLikeIds, setPendingCommentLikeIds] = (0, import_react8.useState)({});
+  const [pendingCommentDeleteIds, setPendingCommentDeleteIds] = (0, import_react8.useState)({});
+  const [pendingFollowUserIds, setPendingFollowUserIds] = (0, import_react8.useState)({});
+  const [pendingPostDeleteIds, setPendingPostDeleteIds] = (0, import_react8.useState)({});
+  const [pendingPostRestoreIds, setPendingPostRestoreIds] = (0, import_react8.useState)({});
+  const [drawerOpen, setDrawerOpen] = (0, import_react8.useState)(false);
+  const [selectedProfile, setSelectedProfile] = (0, import_react8.useState)(null);
+  const [isProfileModalOpen, setIsProfileModalOpen] = (0, import_react8.useState)(false);
+  const [modalOpen, setModalOpen] = (0, import_react8.useState)(false);
+  const [caption, setCaption] = (0, import_react8.useState)("");
+  const [selectedFile, setSelectedFile] = (0, import_react8.useState)(null);
+  const [previewUrl, setPreviewUrl] = (0, import_react8.useState)("");
+  const [postError, setPostError] = (0, import_react8.useState)("");
+  const [isPosting, setIsPosting] = (0, import_react8.useState)(false);
+  const [avatarEditorOpen, setAvatarEditorOpen] = (0, import_react8.useState)(false);
+  const [avatarDraftUrl, setAvatarDraftUrl] = (0, import_react8.useState)("");
+  const [avatarError, setAvatarError] = (0, import_react8.useState)("");
+  const [isAvatarUploading, setIsAvatarUploading] = (0, import_react8.useState)(false);
   const releasePostPreview = () => {
     setPreviewUrl((currentUrl) => {
       if (currentUrl) {
@@ -13574,6 +14131,16 @@ function FeedPage({ navigate, routes, onLogout }) {
   const handleUnauthorized = () => {
     onLogout();
   };
+  const refreshMe = async () => {
+    try {
+      const profile = await api("/me", { auth: true });
+      setMe(profile);
+    } catch (requestError) {
+      if (requestError.status === 401) {
+        handleUnauthorized();
+      }
+    }
+  };
   const refreshPosts = async () => {
     try {
       const feedItems = await api("/posts", { auth: true });
@@ -13597,6 +14164,50 @@ function FeedPage({ navigate, routes, onLogout }) {
           liked_by_me: nextLikeState.liked_by_me
         } : post
       )
+    );
+  };
+  const updatePostDeleteState = (postId, deleteScheduledAt) => {
+    setPosts(
+      (currentPosts) => currentPosts.map(
+        (post) => post.id === postId ? {
+          ...post,
+          delete_scheduled_at: deleteScheduledAt
+        } : post
+      )
+    );
+  };
+  const pruneExpiredPendingPosts = () => {
+    setPosts(
+      (currentPosts) => currentPosts.filter((post) => {
+        if (!post.delete_scheduled_at) {
+          return true;
+        }
+        return new Date(post.delete_scheduled_at).getTime() > Date.now();
+      })
+    );
+  };
+  const updateFollowStateAcrossUi = (userId, nextFollowState) => {
+    setPosts(
+      (currentPosts) => currentPosts.map(
+        (post) => post.author_id === userId ? {
+          ...post,
+          is_following_author: nextFollowState.is_following
+        } : post
+      )
+    );
+    setSelectedProfile(
+      (currentProfile) => currentProfile && currentProfile.id === userId ? {
+        ...currentProfile,
+        followers_count: nextFollowState.followers_count,
+        following_count: nextFollowState.following_count,
+        is_following: nextFollowState.is_following
+      } : currentProfile
+    );
+    setMe(
+      (currentMe) => currentMe ? {
+        ...currentMe,
+        following_count: currentMe.id === userId ? nextFollowState.following_count : Math.max(0, (Number(currentMe.following_count) || 0) + (nextFollowState.is_following ? 1 : -1))
+      } : currentMe
     );
   };
   const appendComment = (comments, nextComment) => comments.map(
@@ -13654,7 +14265,7 @@ function FeedPage({ navigate, routes, onLogout }) {
       )
     );
   };
-  (0, import_react5.useEffect)(() => {
+  (0, import_react8.useEffect)(() => {
     let active = true;
     const loadFeed = async () => {
       setIsLoading(true);
@@ -13690,20 +14301,24 @@ function FeedPage({ navigate, routes, onLogout }) {
       active = false;
     };
   }, []);
-  (0, import_react5.useEffect)(() => {
+  (0, import_react8.useEffect)(() => {
     return () => {
       if (previewUrl) {
         URL.revokeObjectURL(previewUrl);
       }
     };
   }, [previewUrl]);
-  (0, import_react5.useEffect)(() => {
+  (0, import_react8.useEffect)(() => {
     return () => {
       if (avatarDraftUrl) {
         URL.revokeObjectURL(avatarDraftUrl);
       }
     };
   }, [avatarDraftUrl]);
+  (0, import_react8.useEffect)(() => {
+    const intervalId = window.setInterval(pruneExpiredPendingPosts, 1e3);
+    return () => window.clearInterval(intervalId);
+  }, []);
   const closeComposer = () => {
     setModalOpen(false);
     resetComposer();
@@ -13778,7 +14393,7 @@ function FeedPage({ navigate, routes, onLogout }) {
         auth: true
       });
       closeComposer();
-      await refreshPosts();
+      await Promise.all([refreshPosts(), refreshMe()]);
     } catch (requestError) {
       if (requestError.status === 401) {
         handleUnauthorized();
@@ -13836,6 +14451,67 @@ function FeedPage({ navigate, routes, onLogout }) {
       setInteractionError(requestError.message);
     } finally {
       setPendingLikeIds((current) => {
+        const nextState = { ...current };
+        delete nextState[postId];
+        return nextState;
+      });
+    }
+  };
+  const handlePostDelete = async (postId) => {
+    if (pendingPostDeleteIds[postId]) {
+      return;
+    }
+    setInteractionError("");
+    setPendingPostDeleteIds((current) => ({
+      ...current,
+      [postId]: true
+    }));
+    try {
+      const payload = await api(`/posts/${postId}/delete`, {
+        method: "POST",
+        auth: true
+      });
+      updatePostDeleteState(postId, payload.delete_scheduled_at);
+      await refreshMe();
+    } catch (requestError) {
+      if (requestError.status === 401) {
+        handleUnauthorized();
+        return;
+      }
+      setInteractionError(requestError.message);
+    } finally {
+      setPendingPostDeleteIds((current) => {
+        const nextState = { ...current };
+        delete nextState[postId];
+        return nextState;
+      });
+    }
+  };
+  const handlePostRestore = async (postId) => {
+    if (pendingPostRestoreIds[postId]) {
+      return;
+    }
+    setInteractionError("");
+    setPendingPostRestoreIds((current) => ({
+      ...current,
+      [postId]: true
+    }));
+    try {
+      await api(`/posts/${postId}/restore`, {
+        method: "POST",
+        auth: true
+      });
+      updatePostDeleteState(postId, null);
+      await refreshMe();
+    } catch (requestError) {
+      if (requestError.status === 401) {
+        handleUnauthorized();
+        return;
+      }
+      setInteractionError(requestError.message);
+      await refreshPosts();
+    } finally {
+      setPendingPostRestoreIds((current) => {
         const nextState = { ...current };
         delete nextState[postId];
         return nextState;
@@ -13939,35 +14615,86 @@ function FeedPage({ navigate, routes, onLogout }) {
       });
     }
   };
+  const openUserProfile = async (userId) => {
+    setInteractionError("");
+    try {
+      const profile = await api(`/users/${userId}`, { auth: true });
+      setSelectedProfile(profile);
+      setIsProfileModalOpen(true);
+    } catch (requestError) {
+      if (requestError.status === 401) {
+        handleUnauthorized();
+        return;
+      }
+      setInteractionError(requestError.message);
+    }
+  };
+  const handleFollowToggle = async (userId, isFollowing) => {
+    if (pendingFollowUserIds[userId]) {
+      return;
+    }
+    setInteractionError("");
+    setPendingFollowUserIds((current) => ({
+      ...current,
+      [userId]: true
+    }));
+    try {
+      const nextFollowState = await api(`/users/${userId}/follow`, {
+        method: isFollowing ? "DELETE" : "POST",
+        auth: true
+      });
+      updateFollowStateAcrossUi(userId, nextFollowState);
+      await refreshMe();
+    } catch (requestError) {
+      if (requestError.status === 401) {
+        handleUnauthorized();
+        return;
+      }
+      setInteractionError(requestError.message);
+    } finally {
+      setPendingFollowUserIds((current) => {
+        const nextState = { ...current };
+        delete nextState[userId];
+        return nextState;
+      });
+    }
+  };
   const renderFeedState = () => {
     if (isLoading) {
-      return /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { className: "feed-state", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("div", { className: "feed-state__title", children: "\u0417\u0430\u0433\u0440\u0443\u0436\u0430\u0435\u043C \u043B\u0435\u043D\u0442\u0443..." }),
-        /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("div", { className: "feed-state__text", children: "\u041F\u043E\u043B\u0443\u0447\u0430\u0435\u043C \u043F\u0440\u043E\u0444\u0438\u043B\u044C, \u043F\u043E\u0441\u0442\u044B \u0438 \u043C\u0435\u0434\u0438\u0430\u0444\u0430\u0439\u043B\u044B." })
+      return /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)("div", { className: "feed-state", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("div", { className: "feed-state__title", children: "\u0417\u0430\u0433\u0440\u0443\u0436\u0430\u0435\u043C \u043B\u0435\u043D\u0442\u0443..." }),
+        /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("div", { className: "feed-state__text", children: "\u041F\u043E\u043B\u0443\u0447\u0430\u0435\u043C \u043F\u0440\u043E\u0444\u0438\u043B\u044C, \u043F\u043E\u0441\u0442\u044B \u0438 \u043C\u0435\u0434\u0438\u0430\u0444\u0430\u0439\u043B\u044B." })
       ] });
     }
     if (feedError) {
-      return /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { className: "feed-state feed-state--error", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("div", { className: "feed-state__title", children: "\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u0437\u0430\u0433\u0440\u0443\u0437\u0438\u0442\u044C \u043B\u0435\u043D\u0442\u0443" }),
-        /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("div", { className: "feed-state__text", children: feedError }),
-        /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("button", { className: "button button--secondary", type: "button", onClick: refreshPosts, children: "\u041F\u043E\u0432\u0442\u043E\u0440\u0438\u0442\u044C" })
+      return /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)("div", { className: "feed-state feed-state--error", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("div", { className: "feed-state__title", children: "\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u0437\u0430\u0433\u0440\u0443\u0437\u0438\u0442\u044C \u043B\u0435\u043D\u0442\u0443" }),
+        /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("div", { className: "feed-state__text", children: feedError }),
+        /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("button", { className: "button button--secondary", type: "button", onClick: refreshPosts, children: "\u041F\u043E\u0432\u0442\u043E\u0440\u0438\u0442\u044C" })
       ] });
     }
     if (posts.length === 0) {
-      return /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { className: "feed-state", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("div", { className: "feed-state__title", children: "\u041F\u043E\u043A\u0430 \u043F\u0443\u0441\u0442\u043E" }),
-        /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("div", { className: "feed-state__text", children: "\u041D\u0430\u0436\u043C\u0438 \u043D\u0430 \u043A\u043D\u043E\u043F\u043A\u0443 \u0434\u043E\u0431\u0430\u0432\u043B\u0435\u043D\u0438\u044F \u0438 \u043E\u043F\u0443\u0431\u043B\u0438\u043A\u0443\u0439 \u043F\u0435\u0440\u0432\u044B\u0439 \u043F\u043E\u0441\u0442." })
+      return /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)("div", { className: "feed-state", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("div", { className: "feed-state__title", children: "\u041F\u043E\u043A\u0430 \u043F\u0443\u0441\u0442\u043E" }),
+        /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("div", { className: "feed-state__text", children: "\u041D\u0430\u0436\u043C\u0438 \u043D\u0430 \u043A\u043D\u043E\u043F\u043A\u0443 \u0434\u043E\u0431\u0430\u0432\u043B\u0435\u043D\u0438\u044F \u0438 \u043E\u043F\u0443\u0431\u043B\u0438\u043A\u0443\u0439 \u043F\u0435\u0440\u0432\u044B\u0439 \u043F\u043E\u0441\u0442." })
       ] });
     }
-    return posts.map((post) => /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
+    return posts.map((post) => /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
       PostCard,
       {
         post,
         isLikePending: Boolean(pendingLikeIds[post.id]),
+        isFollowPending: Boolean(pendingFollowUserIds[post.author_id]),
+        isDeletePending: Boolean(pendingPostDeleteIds[post.id]),
+        isRestorePending: Boolean(pendingPostRestoreIds[post.id]),
         isCommentPending: Boolean(pendingCommentPostIds[post.id]),
         pendingCommentLikeIds,
         pendingReplyIds,
         pendingCommentDeleteIds,
+        onProfileOpen: openUserProfile,
+        onFollowToggle: me && post.author_id !== me.id ? handleFollowToggle : null,
+        onPostDelete: handlePostDelete,
+        onPostRestore: handlePostRestore,
         onLikeToggle: handleLikeToggle,
         onCommentSubmit: handleCommentSubmit,
         onCommentLikeToggle: handleCommentLikeToggle,
@@ -13977,39 +14704,37 @@ function FeedPage({ navigate, routes, onLogout }) {
     ));
   };
   const avatarFeedback = isAvatarUploading ? "\u0421\u043E\u0445\u0440\u0430\u043D\u044F\u0435\u043C \u0430\u0432\u0430\u0442\u0430\u0440..." : avatarError;
-  return /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { className: "feed-screen", children: [
-    /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("div", { className: "ambient-backdrop", "aria-hidden": "true" }),
-    /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { className: "feed-frame", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("header", { className: "topbar", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("button", { className: "brand-button", type: "button", onClick: () => navigate(routes.feed, { replace: true }), children: "instan" }),
-        /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { className: "topbar__meta", children: [
+  return /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)("div", { className: "feed-screen", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("div", { className: "ambient-backdrop", "aria-hidden": "true" }),
+    /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)("div", { className: "feed-frame", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)("header", { className: "topbar", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("button", { className: "brand-button", type: "button", onClick: () => navigate(routes.feed, { replace: true }), children: "instan" }),
+        /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)("div", { className: "topbar__meta", children: [
           "@",
           me?.username || "user"
         ] })
       ] }),
-      interactionError ? /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("div", { className: "feed-inline-error", children: interactionError }) : null,
-      /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("main", { className: "feed-list", children: renderFeedState() }),
-      /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("nav", { className: "bottom-nav", "aria-label": "\u041E\u0441\u043D\u043E\u0432\u043D\u0430\u044F \u043D\u0430\u0432\u0438\u0433\u0430\u0446\u0438\u044F", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("button", { className: "bottom-nav__button", type: "button", onClick: openComposer, children: "+ \u041F\u043E\u0441\u0442" }),
-        /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("button", { className: "bottom-nav__button", type: "button", onClick: () => setDrawerOpen(true), children: "\u041F\u0440\u043E\u0444\u0438\u043B\u044C" })
+      interactionError ? /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("div", { className: "feed-inline-error", children: interactionError }) : null,
+      /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("main", { className: "feed-list", children: renderFeedState() }),
+      /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)("nav", { className: "bottom-nav", "aria-label": "\u041E\u0441\u043D\u043E\u0432\u043D\u0430\u044F \u043D\u0430\u0432\u0438\u0433\u0430\u0446\u0438\u044F", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("button", { className: "bottom-nav__button", type: "button", onClick: openComposer, children: "+ \u041F\u043E\u0441\u0442" }),
+        /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("button", { className: "bottom-nav__button", type: "button", onClick: () => setDrawerOpen(true), children: "\u041F\u0440\u043E\u0444\u0438\u043B\u044C" })
       ] })
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
+    /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
       ProfileDrawer,
       {
         me,
         open: drawerOpen,
-        postCount: posts.length,
-        profileExpanded,
+        postCount: Number(me?.posts_count) || 0,
         avatarFeedback,
         isAvatarUploading,
         onAvatarSelect: handleAvatarSelect,
         onClose: () => setDrawerOpen(false),
-        onToggleProfile: () => setProfileExpanded((current) => !current),
         onLogout
       }
     ),
-    /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
+    /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
       CreatePostModal,
       {
         open: modalOpen,
@@ -14023,7 +14748,7 @@ function FeedPage({ navigate, routes, onLogout }) {
         onSubmit: handleCreatePost
       }
     ),
-    /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
+    /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
       AvatarCropModal,
       {
         open: avatarEditorOpen,
@@ -14033,57 +14758,54 @@ function FeedPage({ navigate, routes, onLogout }) {
         onClose: closeAvatarEditor,
         onSave: handleSaveAvatar
       }
+    ),
+    /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
+      UserProfileModal,
+      {
+        profile: selectedProfile,
+        open: isProfileModalOpen,
+        isFollowPending: Boolean(selectedProfile && pendingFollowUserIds[selectedProfile.id]),
+        onClose: () => setIsProfileModalOpen(false),
+        onFollowToggle: handleFollowToggle
+      }
     )
   ] });
 }
-var import_react5, import_jsx_runtime5, MAX_IMAGE_SIZE_BYTES;
+var import_react8, import_jsx_runtime9, MAX_IMAGE_SIZE_BYTES;
 var init_FeedPage = __esm({
   "frontend/src/pages/FeedPage.jsx"() {
-    import_react5 = __toESM(require_react());
+    import_react8 = __toESM(require_react());
     init_AvatarCropModal();
     init_CreatePostModal();
     init_PostCard();
     init_ProfileDrawer();
+    init_UserProfileModal();
     init_api();
-    import_jsx_runtime5 = __toESM(require_jsx_runtime());
+    import_jsx_runtime9 = __toESM(require_jsx_runtime());
     MAX_IMAGE_SIZE_BYTES = 10 * 1024 * 1024;
-  }
-});
-
-// frontend/src/components/AuthCard.jsx
-function AuthCard({ title, description, children, footer }) {
-  return /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { className: "auth-screen", children: [
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("div", { className: "ambient-backdrop", "aria-hidden": "true" }),
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("section", { className: "auth-card", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("div", { className: "auth-card__eyebrow", children: "instan / react" }),
-      /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("h1", { className: "auth-card__title", children: title }),
-      /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("p", { className: "auth-card__description", children: description }),
-      children,
-      footer ? /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("div", { className: "auth-card__footer", children: footer }) : null
-    ] })
-  ] });
-}
-var import_jsx_runtime6;
-var init_AuthCard = __esm({
-  "frontend/src/components/AuthCard.jsx"() {
-    import_jsx_runtime6 = __toESM(require_jsx_runtime());
   }
 });
 
 // frontend/src/pages/LoginPage.jsx
 function LoginPage({ navigate, routes }) {
-  const [form, setForm] = (0, import_react6.useState)({
+  const [form, setForm] = (0, import_react9.useState)({
     username: "",
     password: ""
   });
-  const [error, setError] = (0, import_react6.useState)("");
-  const [isSubmitting, setIsSubmitting] = (0, import_react6.useState)(false);
-  (0, import_react6.useEffect)(() => {
+  const [error, setError] = (0, import_react9.useState)("");
+  const [isSubmitting, setIsSubmitting] = (0, import_react9.useState)(false);
+  (0, import_react9.useEffect)(() => {
     const token = getToken();
     if (!token) {
       return void 0;
     }
     let active = true;
+    if (getRole() === "admin") {
+      navigate(routes.adminLogin, { replace: true });
+      return () => {
+        active = false;
+      };
+    }
     api("/me", { auth: true }).then(() => {
       if (active) {
         navigate(routes.feed, { replace: true });
@@ -14094,7 +14816,7 @@ function LoginPage({ navigate, routes }) {
     return () => {
       active = false;
     };
-  }, [navigate, routes.feed]);
+  }, [navigate, routes.adminLogin, routes.feed]);
   const handleChange = (event) => {
     const { name, value } = event.target;
     setForm((current) => ({
@@ -14115,23 +14837,27 @@ function LoginPage({ navigate, routes }) {
         }
       });
       setToken(response.access_token);
-      navigate(routes.feed, { replace: true });
+      setRole(response.role || "user");
+      navigate(response.role === "admin" ? routes.adminLogin : routes.feed, { replace: true });
     } catch (requestError) {
       setError(requestError.message);
     } finally {
       setIsSubmitting(false);
     }
   };
-  return /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
     AuthCard,
     {
       title: "\u0412\u0445\u043E\u0434",
-      description: "\u0412\u043E\u0439\u0434\u0438 \u0432 \u043B\u0435\u043D\u0442\u0443, \u0447\u0442\u043E\u0431\u044B \u0441\u043C\u043E\u0442\u0440\u0435\u0442\u044C \u043F\u043E\u0441\u0442\u044B \u0438 \u043F\u0443\u0431\u043B\u0438\u043A\u043E\u0432\u0430\u0442\u044C \u0441\u0432\u043E\u0438 \u0438\u0437\u043E\u0431\u0440\u0430\u0436\u0435\u043D\u0438\u044F.",
-      footer: /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("button", { className: "text-link", type: "button", onClick: () => navigate(routes.register), children: "\u041D\u0435\u0442 \u0430\u043A\u043A\u0430\u0443\u043D\u0442\u0430? \u041F\u0435\u0440\u0435\u0439\u0442\u0438 \u043A \u0440\u0435\u0433\u0438\u0441\u0442\u0440\u0430\u0446\u0438\u0438" }),
-      children: /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("form", { className: "auth-form", onSubmit: handleSubmit, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("label", { className: "form-field", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("span", { className: "form-field__label", children: "Username" }),
-          /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(
+      description: "\u0412\u043E\u0439\u0434\u0438 \u0432 \u043F\u0440\u0438\u043B\u043E\u0436\u0435\u043D\u0438\u0435, \u0447\u0442\u043E\u0431\u044B \u0441\u043C\u043E\u0442\u0440\u0435\u0442\u044C \u043B\u0435\u043D\u0442\u0443, \u043F\u0443\u0431\u043B\u0438\u043A\u043E\u0432\u0430\u0442\u044C \u043F\u043E\u0441\u0442\u044B \u0438 \u0440\u0430\u0431\u043E\u0442\u0430\u0442\u044C \u0441 \u043A\u043E\u043C\u043C\u0435\u043D\u0442\u0430\u0440\u0438\u044F\u043C\u0438.",
+      footer: /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)(import_jsx_runtime10.Fragment, { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("button", { className: "text-link", type: "button", onClick: () => navigate(routes.register), children: "\u041D\u0435\u0442 \u0430\u043A\u043A\u0430\u0443\u043D\u0442\u0430? \u041F\u0435\u0440\u0435\u0439\u0442\u0438 \u043A \u0440\u0435\u0433\u0438\u0441\u0442\u0440\u0430\u0446\u0438\u0438" }),
+        /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("button", { className: "text-link", type: "button", onClick: () => navigate(routes.adminLogin), children: "\u0412\u0445\u043E\u0434 \u0434\u043B\u044F \u0430\u0434\u043C\u0438\u043D\u0438\u0441\u0442\u0440\u0430\u0442\u043E\u0440\u0430" })
+      ] }),
+      children: /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("form", { className: "auth-form", onSubmit: handleSubmit, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("label", { className: "form-field", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("span", { className: "form-field__label", children: "Username" }),
+          /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
             "input",
             {
               className: "form-field__input",
@@ -14143,9 +14869,9 @@ function LoginPage({ navigate, routes }) {
             }
           )
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("label", { className: "form-field", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("span", { className: "form-field__label", children: "Password" }),
-          /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(
+        /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("label", { className: "form-field", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("span", { className: "form-field__label", children: "Password" }),
+          /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
             "input",
             {
               className: "form-field__input",
@@ -14158,33 +14884,33 @@ function LoginPage({ navigate, routes }) {
             }
           )
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("div", { className: "form-error", "aria-live": "polite", children: error }),
-        /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("button", { className: "button button--primary", type: "submit", disabled: isSubmitting, children: isSubmitting ? "\u0412\u0445\u043E\u0434\u0438\u043C..." : "\u0412\u043E\u0439\u0442\u0438" })
+        /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("div", { className: "form-error", "aria-live": "polite", children: error }),
+        /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("button", { className: "button button--primary", type: "submit", disabled: isSubmitting, children: isSubmitting ? "\u0412\u0445\u043E\u0434\u0438\u043C..." : "\u0412\u043E\u0439\u0442\u0438" })
       ] })
     }
   );
 }
-var import_react6, import_jsx_runtime7;
+var import_react9, import_jsx_runtime10;
 var init_LoginPage = __esm({
   "frontend/src/pages/LoginPage.jsx"() {
-    import_react6 = __toESM(require_react());
+    import_react9 = __toESM(require_react());
     init_AuthCard();
     init_api();
-    import_jsx_runtime7 = __toESM(require_jsx_runtime());
+    import_jsx_runtime10 = __toESM(require_jsx_runtime());
   }
 });
 
 // frontend/src/pages/RegisterPage.jsx
 function RegisterPage({ navigate, routes }) {
-  const [form, setForm] = (0, import_react7.useState)({
+  const [form, setForm] = (0, import_react10.useState)({
     username: "",
     email: "",
     full_name: "",
     password: ""
   });
-  const [error, setError] = (0, import_react7.useState)("");
-  const [isSubmitting, setIsSubmitting] = (0, import_react7.useState)(false);
-  (0, import_react7.useEffect)(() => {
+  const [error, setError] = (0, import_react10.useState)("");
+  const [isSubmitting, setIsSubmitting] = (0, import_react10.useState)(false);
+  (0, import_react10.useEffect)(() => {
     const token = getToken();
     if (!token) {
       return void 0;
@@ -14229,16 +14955,16 @@ function RegisterPage({ navigate, routes }) {
       setIsSubmitting(false);
     }
   };
-  return /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(
     AuthCard,
     {
       title: "\u0420\u0435\u0433\u0438\u0441\u0442\u0440\u0430\u0446\u0438\u044F",
       description: "\u0421\u043E\u0437\u0434\u0430\u0439 \u0430\u043A\u043A\u0430\u0443\u043D\u0442, \u0447\u0442\u043E\u0431\u044B \u0432\u043E\u0439\u0442\u0438 \u0432 \u043F\u0440\u0438\u043B\u043E\u0436\u0435\u043D\u0438\u0435 \u0438 \u0440\u0430\u0431\u043E\u0442\u0430\u0442\u044C \u0441 \u043B\u0435\u043D\u0442\u043E\u0439 \u0443\u0436\u0435 \u0438\u0437 React-\u0444\u0440\u043E\u043D\u0442\u0430.",
-      footer: /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("button", { className: "text-link", type: "button", onClick: () => navigate(routes.login), children: "\u0423\u0436\u0435 \u0435\u0441\u0442\u044C \u0430\u043A\u043A\u0430\u0443\u043D\u0442? \u0412\u0435\u0440\u043D\u0443\u0442\u044C\u0441\u044F \u043A\u043E \u0432\u0445\u043E\u0434\u0443" }),
-      children: /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("form", { className: "auth-form", onSubmit: handleSubmit, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("label", { className: "form-field", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("span", { className: "form-field__label", children: "Username" }),
-          /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
+      footer: /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("button", { className: "text-link", type: "button", onClick: () => navigate(routes.login), children: "\u0423\u0436\u0435 \u0435\u0441\u0442\u044C \u0430\u043A\u043A\u0430\u0443\u043D\u0442? \u0412\u0435\u0440\u043D\u0443\u0442\u044C\u0441\u044F \u043A\u043E \u0432\u0445\u043E\u0434\u0443" }),
+      children: /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)("form", { className: "auth-form", onSubmit: handleSubmit, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)("label", { className: "form-field", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("span", { className: "form-field__label", children: "Username" }),
+          /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(
             "input",
             {
               className: "form-field__input",
@@ -14250,9 +14976,9 @@ function RegisterPage({ navigate, routes }) {
             }
           )
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("label", { className: "form-field", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("span", { className: "form-field__label", children: "Email" }),
-          /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
+        /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)("label", { className: "form-field", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("span", { className: "form-field__label", children: "Email" }),
+          /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(
             "input",
             {
               className: "form-field__input",
@@ -14265,9 +14991,9 @@ function RegisterPage({ navigate, routes }) {
             }
           )
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("label", { className: "form-field", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("span", { className: "form-field__label", children: "\u041F\u043E\u043B\u043D\u043E\u0435 \u0438\u043C\u044F" }),
-          /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
+        /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)("label", { className: "form-field", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("span", { className: "form-field__label", children: "\u041F\u043E\u043B\u043D\u043E\u0435 \u0438\u043C\u044F" }),
+          /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(
             "input",
             {
               className: "form-field__input",
@@ -14279,9 +15005,9 @@ function RegisterPage({ navigate, routes }) {
             }
           )
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("label", { className: "form-field", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("span", { className: "form-field__label", children: "Password" }),
-          /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
+        /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)("label", { className: "form-field", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("span", { className: "form-field__label", children: "Password" }),
+          /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(
             "input",
             {
               className: "form-field__input",
@@ -14294,19 +15020,19 @@ function RegisterPage({ navigate, routes }) {
             }
           )
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("div", { className: "form-error", "aria-live": "polite", children: error }),
-        /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("button", { className: "button button--primary", type: "submit", disabled: isSubmitting, children: isSubmitting ? "\u0421\u043E\u0437\u0434\u0430\u0435\u043C..." : "\u0417\u0430\u0440\u0435\u0433\u0438\u0441\u0442\u0440\u0438\u0440\u043E\u0432\u0430\u0442\u044C\u0441\u044F" })
+        /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("div", { className: "form-error", "aria-live": "polite", children: error }),
+        /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("button", { className: "button button--primary", type: "submit", disabled: isSubmitting, children: isSubmitting ? "\u0421\u043E\u0437\u0434\u0430\u0435\u043C..." : "\u0417\u0430\u0440\u0435\u0433\u0438\u0441\u0442\u0440\u0438\u0440\u043E\u0432\u0430\u0442\u044C\u0441\u044F" })
       ] })
     }
   );
 }
-var import_react7, import_jsx_runtime8;
+var import_react10, import_jsx_runtime11;
 var init_RegisterPage = __esm({
   "frontend/src/pages/RegisterPage.jsx"() {
-    import_react7 = __toESM(require_react());
+    import_react10 = __toESM(require_react());
     init_AuthCard();
     init_api();
-    import_jsx_runtime8 = __toESM(require_jsx_runtime());
+    import_jsx_runtime11 = __toESM(require_jsx_runtime());
   }
 });
 
@@ -14322,8 +15048,8 @@ function applyHistory(pathname, replace = false) {
   window.history[method](null, "", pathname);
 }
 function App() {
-  const [route, setRoute] = (0, import_react8.useState)(() => normalizePath(window.location.pathname));
-  (0, import_react8.useEffect)(() => {
+  const [route, setRoute] = (0, import_react11.useState)(() => normalizePath(window.location.pathname));
+  (0, import_react11.useEffect)(() => {
     const syncRoute = () => {
       const nextRoute = normalizePath(window.location.pathname);
       if (nextRoute !== window.location.pathname) {
@@ -14347,29 +15073,38 @@ function App() {
     clearToken();
     navigate(ROUTES.login, { replace: true });
   };
+  if (route === ROUTES.adminLogin && getRole() === "admin") {
+    return /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(AdminPage, { navigate, routes: ROUTES });
+  }
   if (route === ROUTES.register) {
-    return /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(RegisterPage, { navigate, routes: ROUTES });
+    return /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(RegisterPage, { navigate, routes: ROUTES });
   }
   if (route === ROUTES.feed) {
-    return /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(FeedPage, { navigate, routes: ROUTES, onLogout: handleLogout });
+    return /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(FeedPage, { navigate, routes: ROUTES, onLogout: handleLogout });
   }
-  return /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(LoginPage, { navigate, routes: ROUTES });
+  if (route === ROUTES.adminLogin) {
+    return /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(AdminLoginPage, { navigate, routes: ROUTES });
+  }
+  return /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(LoginPage, { navigate, routes: ROUTES });
 }
-var import_react8, import_jsx_runtime9, ROUTES, KNOWN_PATHS;
+var import_react11, import_jsx_runtime12, ROUTES, KNOWN_PATHS;
 var init_App = __esm({
   "frontend/src/App.jsx"() {
-    import_react8 = __toESM(require_react());
+    import_react11 = __toESM(require_react());
     init_api();
+    init_AdminLoginPage();
+    init_AdminPage();
     init_FeedPage();
     init_LoginPage();
     init_RegisterPage();
-    import_jsx_runtime9 = __toESM(require_jsx_runtime());
+    import_jsx_runtime12 = __toESM(require_jsx_runtime());
     ROUTES = {
       login: "/login_page",
       register: "/register_page",
-      feed: "/feed_page"
+      feed: "/feed_page",
+      adminLogin: "/admin_page"
     };
-    KNOWN_PATHS = /* @__PURE__ */ new Set(["/", ROUTES.login, ROUTES.register, ROUTES.feed]);
+    KNOWN_PATHS = /* @__PURE__ */ new Set(["/", ROUTES.login, ROUTES.register, ROUTES.feed, ROUTES.adminLogin]);
   }
 });
 
@@ -14382,13 +15117,13 @@ var init_styles = __esm({
 // frontend/src/main.jsx
 var require_main = __commonJS({
   "frontend/src/main.jsx"() {
-    var import_react9 = __toESM(require_react());
+    var import_react12 = __toESM(require_react());
     var import_client = __toESM(require_client());
     init_App();
     init_styles();
-    var import_jsx_runtime10 = __toESM(require_jsx_runtime());
+    var import_jsx_runtime13 = __toESM(require_jsx_runtime());
     (0, import_client.createRoot)(document.getElementById("root")).render(
-      /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(import_react9.default.StrictMode, { children: /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(App, {}) })
+      /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(import_react12.default.StrictMode, { children: /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(App, {}) })
     );
   }
 });

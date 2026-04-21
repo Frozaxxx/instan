@@ -1,4 +1,5 @@
 const TOKEN_STORAGE_KEY = "token";
+const ROLE_STORAGE_KEY = "role";
 
 export function getToken() {
   return window.localStorage.getItem(TOKEN_STORAGE_KEY);
@@ -10,6 +11,15 @@ export function setToken(token) {
 
 export function clearToken() {
   window.localStorage.removeItem(TOKEN_STORAGE_KEY);
+  window.localStorage.removeItem(ROLE_STORAGE_KEY);
+}
+
+export function getRole() {
+  return window.localStorage.getItem(ROLE_STORAGE_KEY);
+}
+
+export function setRole(role) {
+  window.localStorage.setItem(ROLE_STORAGE_KEY, role);
 }
 
 export async function api(path, { method = "GET", body = null, auth = false } = {}) {

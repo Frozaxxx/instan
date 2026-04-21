@@ -1,7 +1,12 @@
+import os
+
 from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.orm import sessionmaker, declarative_base
 
-DATABASE_URL = "postgresql+psycopg2://postgres:postgres@localhost:5432/postgres"
+DATABASE_URL = os.getenv(
+    "DATABASE_URL",
+    "postgresql+psycopg2://postgres:postgres@localhost:5432/postgres",
+)
 
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)
@@ -11,6 +16,7 @@ Base = declarative_base()
 def init_db() -> None:
     Base.metadata.create_all(bind=engine)
     migrate_users_table()
+    migrate_follows_table()
     migrate_posts_table()
     migrate_post_likes_table()
     migrate_comments_table()
@@ -26,9 +32,82 @@ def migrate_users_table() -> None:
         conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS followers_count INTEGER"))
         conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS following_count INTEGER"))
         conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_path VARCHAR"))
+        conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_blocked INTEGER DEFAULT 0"))
 
         conn.execute(text("UPDATE users SET followers_count = 0 WHERE followers_count IS NULL"))
         conn.execute(text("UPDATE users SET following_count = 0 WHERE following_count IS NULL"))
+        conn.execute(text("UPDATE users SET is_blocked = 0 WHERE is_blocked IS NULL"))
+
+
+def migrate_follows_table() -> None:
+    with engine.begin() as conn:
+        conn.execute(
+            text(
+                """
+                CREATE TABLE IF NOT EXISTS follows (
+                    id SERIAL PRIMARY KEY,
+                    follower_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                    following_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                    CHECK (follower_id <> following_id)
+                )
+                """
+            )
+        )
+        conn.execute(text("CREATE INDEX IF NOT EXISTS ix_follows_follower_id ON follows (follower_id)"))
+        conn.execute(text("CREATE INDEX IF NOT EXISTS ix_follows_following_id ON follows (following_id)"))
+        conn.execute(
+            text(
+                "CREATE UNIQUE INDEX IF NOT EXISTS uq_follows_follower_following "
+                "ON follows (follower_id, following_id)"
+            )
+        )
+        conn.execute(
+            text(
+                """
+                UPDATE users AS u
+                SET followers_count = COALESCE(stats.followers_count, 0)
+                FROM (
+                    SELECT following_id AS user_id, COUNT(*)::INTEGER AS followers_count
+                    FROM follows
+                    GROUP BY following_id
+                ) AS stats
+                WHERE u.id = stats.user_id
+                """
+            )
+        )
+        conn.execute(
+            text(
+                """
+                UPDATE users
+                SET followers_count = 0
+                WHERE id NOT IN (SELECT DISTINCT following_id FROM follows)
+                """
+            )
+        )
+        conn.execute(
+            text(
+                """
+                UPDATE users AS u
+                SET following_count = COALESCE(stats.following_count, 0)
+                FROM (
+                    SELECT follower_id AS user_id, COUNT(*)::INTEGER AS following_count
+                    FROM follows
+                    GROUP BY follower_id
+                ) AS stats
+                WHERE u.id = stats.user_id
+                """
+            )
+        )
+        conn.execute(
+            text(
+                """
+                UPDATE users
+                SET following_count = 0
+                WHERE id NOT IN (SELECT DISTINCT follower_id FROM follows)
+                """
+            )
+        )
 
 
 def migrate_posts_table() -> None:
@@ -56,6 +135,7 @@ def migrate_posts_table() -> None:
                 "WHERE image_path IS NULL OR image_path = ''"
             )
         )
+        conn.execute(text("ALTER TABLE posts ADD COLUMN IF NOT EXISTS delete_scheduled_at TIMESTAMPTZ"))
 
         conn.execute(text("ALTER TABLE posts ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW()"))
         conn.execute(text("UPDATE posts SET created_at = NOW() WHERE created_at IS NULL"))
@@ -69,6 +149,7 @@ def migrate_posts_table() -> None:
             conn.execute(text("ALTER TABLE posts ALTER COLUMN content_type DROP NOT NULL"))
 
         conn.execute(text("CREATE INDEX IF NOT EXISTS ix_posts_author_id ON posts (author_id)"))
+        conn.execute(text("CREATE INDEX IF NOT EXISTS ix_posts_delete_scheduled_at ON posts (delete_scheduled_at)"))
         conn.execute(text("CREATE INDEX IF NOT EXISTS ix_posts_created_at ON posts (created_at)"))
 
         conn.execute(text("ALTER TABLE posts ALTER COLUMN author_id SET NOT NULL"))
@@ -130,6 +211,7 @@ def migrate_comments_table() -> None:
         )
         conn.execute(text("ALTER TABLE comments ADD COLUMN IF NOT EXISTS author_id INTEGER"))
         conn.execute(text("ALTER TABLE comments ADD COLUMN IF NOT EXISTS parent_id INTEGER"))
+        conn.execute(text("ALTER TABLE comments ADD COLUMN IF NOT EXISTS reply_to_user_id INTEGER"))
         conn.execute(text("ALTER TABLE comments ADD COLUMN IF NOT EXISTS body TEXT"))
         conn.execute(text("ALTER TABLE comments ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW()"))
 
@@ -146,6 +228,7 @@ def migrate_comments_table() -> None:
         conn.execute(text("CREATE INDEX IF NOT EXISTS ix_comments_post_id ON comments (post_id)"))
         conn.execute(text("CREATE INDEX IF NOT EXISTS ix_comments_author_id ON comments (author_id)"))
         conn.execute(text("CREATE INDEX IF NOT EXISTS ix_comments_parent_id ON comments (parent_id)"))
+        conn.execute(text("CREATE INDEX IF NOT EXISTS ix_comments_reply_to_user_id ON comments (reply_to_user_id)"))
         conn.execute(text("CREATE INDEX IF NOT EXISTS ix_comments_created_at ON comments (created_at)"))
 
         conn.execute(text("ALTER TABLE comments ALTER COLUMN author_id SET NOT NULL"))

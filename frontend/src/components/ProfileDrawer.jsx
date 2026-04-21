@@ -6,12 +6,10 @@ export function ProfileDrawer({
   me,
   open,
   postCount,
-  profileExpanded,
   avatarFeedback,
   isAvatarUploading,
   onAvatarSelect,
   onClose,
-  onToggleProfile,
   onLogout,
 }) {
   const avatarInputRef = useRef(null);
@@ -106,21 +104,16 @@ export function ProfileDrawer({
             </div>
           </section>
 
-          <div className="profile-drawer__actions">
-            <button className="drawer-action" type="button" onClick={onToggleProfile}>
-              {profileExpanded ? "Скрыть профиль" : "Открыть профиль"}
-            </button>
-            <button className="drawer-action drawer-action--danger" type="button" onClick={onLogout}>
-              Выйти
-            </button>
-          </div>
-
-          <section className={`profile-drawer__details ${profileExpanded ? "is-open" : ""}`}>
+          <section className="profile-drawer__details is-open">
             <div className="profile-drawer__section-title">Сводка профиля</div>
-            <div className="profile-stats">
+            <div className="profile-stats profile-stats--four">
               <div className="profile-stats__card">
                 <div className="profile-stats__value">{postCount}</div>
                 <div className="profile-stats__label">посты</div>
+              </div>
+              <div className="profile-stats__card">
+                <div className="profile-stats__value">{me?.likes_count ?? 0}</div>
+                <div className="profile-stats__label">лайки</div>
               </div>
               <div className="profile-stats__card">
                 <div className="profile-stats__value">{me?.followers_count ?? 0}</div>
@@ -132,6 +125,12 @@ export function ProfileDrawer({
               </div>
             </div>
           </section>
+
+          <div className="profile-drawer__actions">
+            <button className="drawer-action drawer-action--danger" type="button" onClick={onLogout}>
+              Выйти
+            </button>
+          </div>
         </div>
       </aside>
     </>

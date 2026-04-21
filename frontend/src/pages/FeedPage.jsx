@@ -4,6 +4,7 @@ import { AvatarCropModal } from "../components/AvatarCropModal.jsx";
 import { CreatePostModal } from "../components/CreatePostModal.jsx";
 import { PostCard } from "../components/PostCard.jsx";
 import { ProfileDrawer } from "../components/ProfileDrawer.jsx";
+import { UserProfileModal } from "../components/UserProfileModal.jsx";
 import { api } from "../lib/api.js";
 
 const MAX_IMAGE_SIZE_BYTES = 10 * 1024 * 1024;
@@ -19,9 +20,13 @@ export function FeedPage({ navigate, routes, onLogout }) {
   const [pendingReplyIds, setPendingReplyIds] = useState({});
   const [pendingCommentLikeIds, setPendingCommentLikeIds] = useState({});
   const [pendingCommentDeleteIds, setPendingCommentDeleteIds] = useState({});
+  const [pendingFollowUserIds, setPendingFollowUserIds] = useState({});
+  const [pendingPostDeleteIds, setPendingPostDeleteIds] = useState({});
+  const [pendingPostRestoreIds, setPendingPostRestoreIds] = useState({});
 
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [profileExpanded, setProfileExpanded] = useState(false);
+  const [selectedProfile, setSelectedProfile] = useState(null);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [caption, setCaption] = useState("");
@@ -70,6 +75,17 @@ export function FeedPage({ navigate, routes, onLogout }) {
     onLogout();
   };
 
+  const refreshMe = async () => {
+    try {
+      const profile = await api("/me", { auth: true });
+      setMe(profile);
+    } catch (requestError) {
+      if (requestError.status === 401) {
+        handleUnauthorized();
+      }
+    }
+  };
+
   const refreshPosts = async () => {
     try {
       const feedItems = await api("/posts", { auth: true });
@@ -97,6 +113,66 @@ export function FeedPage({ navigate, routes, onLogout }) {
             }
           : post,
       ),
+    );
+  };
+
+  const updatePostDeleteState = (postId, deleteScheduledAt) => {
+    setPosts((currentPosts) =>
+      currentPosts.map((post) =>
+        post.id === postId
+          ? {
+              ...post,
+              delete_scheduled_at: deleteScheduledAt,
+            }
+          : post,
+      ),
+    );
+  };
+
+  const pruneExpiredPendingPosts = () => {
+    setPosts((currentPosts) =>
+      currentPosts.filter((post) => {
+        if (!post.delete_scheduled_at) {
+          return true;
+        }
+        return new Date(post.delete_scheduled_at).getTime() > Date.now();
+      }),
+    );
+  };
+
+  const updateFollowStateAcrossUi = (userId, nextFollowState) => {
+    setPosts((currentPosts) =>
+      currentPosts.map((post) =>
+        post.author_id === userId
+          ? {
+              ...post,
+              is_following_author: nextFollowState.is_following,
+            }
+          : post,
+      ),
+    );
+
+    setSelectedProfile((currentProfile) =>
+      currentProfile && currentProfile.id === userId
+        ? {
+            ...currentProfile,
+            followers_count: nextFollowState.followers_count,
+            following_count: nextFollowState.following_count,
+            is_following: nextFollowState.is_following,
+          }
+        : currentProfile,
+    );
+
+    setMe((currentMe) =>
+      currentMe
+        ? {
+            ...currentMe,
+            following_count:
+              currentMe.id === userId
+                ? nextFollowState.following_count
+                : Math.max(0, (Number(currentMe.following_count) || 0) + (nextFollowState.is_following ? 1 : -1)),
+          }
+        : currentMe,
     );
   };
 
@@ -234,6 +310,11 @@ export function FeedPage({ navigate, routes, onLogout }) {
     };
   }, [avatarDraftUrl]);
 
+  useEffect(() => {
+    const intervalId = window.setInterval(pruneExpiredPendingPosts, 1000);
+    return () => window.clearInterval(intervalId);
+  }, []);
+
   const closeComposer = () => {
     setModalOpen(false);
     resetComposer();
@@ -325,7 +406,7 @@ export function FeedPage({ navigate, routes, onLogout }) {
       });
 
       closeComposer();
-      await refreshPosts();
+      await Promise.all([refreshPosts(), refreshMe()]);
     } catch (requestError) {
       if (requestError.status === 401) {
         handleUnauthorized();
@@ -394,6 +475,73 @@ export function FeedPage({ navigate, routes, onLogout }) {
       setInteractionError(requestError.message);
     } finally {
       setPendingLikeIds((current) => {
+        const nextState = { ...current };
+        delete nextState[postId];
+        return nextState;
+      });
+    }
+  };
+
+  const handlePostDelete = async (postId) => {
+    if (pendingPostDeleteIds[postId]) {
+      return;
+    }
+
+    setInteractionError("");
+    setPendingPostDeleteIds((current) => ({
+      ...current,
+      [postId]: true,
+    }));
+
+    try {
+      const payload = await api(`/posts/${postId}/delete`, {
+        method: "POST",
+        auth: true,
+      });
+      updatePostDeleteState(postId, payload.delete_scheduled_at);
+      await refreshMe();
+    } catch (requestError) {
+      if (requestError.status === 401) {
+        handleUnauthorized();
+        return;
+      }
+      setInteractionError(requestError.message);
+    } finally {
+      setPendingPostDeleteIds((current) => {
+        const nextState = { ...current };
+        delete nextState[postId];
+        return nextState;
+      });
+    }
+  };
+
+  const handlePostRestore = async (postId) => {
+    if (pendingPostRestoreIds[postId]) {
+      return;
+    }
+
+    setInteractionError("");
+    setPendingPostRestoreIds((current) => ({
+      ...current,
+      [postId]: true,
+    }));
+
+    try {
+      await api(`/posts/${postId}/restore`, {
+        method: "POST",
+        auth: true,
+      });
+      updatePostDeleteState(postId, null);
+      await refreshMe();
+    } catch (requestError) {
+      if (requestError.status === 401) {
+        handleUnauthorized();
+        return;
+      }
+      setInteractionError(requestError.message);
+      await refreshPosts();
+    } finally {
+      setPendingPostRestoreIds((current) => {
         const nextState = { ...current };
         delete nextState[postId];
         return nextState;
@@ -514,6 +662,58 @@ export function FeedPage({ navigate, routes, onLogout }) {
     }
   };
 
+  const openUserProfile = async (userId) => {
+    setInteractionError("");
+
+    try {
+      const profile = await api(`/users/${userId}`, { auth: true });
+      setSelectedProfile(profile);
+      setIsProfileModalOpen(true);
+    } catch (requestError) {
+      if (requestError.status === 401) {
+        handleUnauthorized();
+        return;
+      }
+
+      setInteractionError(requestError.message);
+    }
+  };
+
+  const handleFollowToggle = async (userId, isFollowing) => {
+    if (pendingFollowUserIds[userId]) {
+      return;
+    }
+
+    setInteractionError("");
+    setPendingFollowUserIds((current) => ({
+      ...current,
+      [userId]: true,
+    }));
+
+    try {
+      const nextFollowState = await api(`/users/${userId}/follow`, {
+        method: isFollowing ? "DELETE" : "POST",
+        auth: true,
+      });
+
+      updateFollowStateAcrossUi(userId, nextFollowState);
+      await refreshMe();
+    } catch (requestError) {
+      if (requestError.status === 401) {
+        handleUnauthorized();
+        return;
+      }
+
+      setInteractionError(requestError.message);
+    } finally {
+      setPendingFollowUserIds((current) => {
+        const nextState = { ...current };
+        delete nextState[userId];
+        return nextState;
+      });
+    }
+  };
+
   const renderFeedState = () => {
     if (isLoading) {
       return (
@@ -550,10 +750,17 @@ export function FeedPage({ navigate, routes, onLogout }) {
         key={post.id}
         post={post}
         isLikePending={Boolean(pendingLikeIds[post.id])}
+        isFollowPending={Boolean(pendingFollowUserIds[post.author_id])}
+        isDeletePending={Boolean(pendingPostDeleteIds[post.id])}
+        isRestorePending={Boolean(pendingPostRestoreIds[post.id])}
         isCommentPending={Boolean(pendingCommentPostIds[post.id])}
         pendingCommentLikeIds={pendingCommentLikeIds}
         pendingReplyIds={pendingReplyIds}
         pendingCommentDeleteIds={pendingCommentDeleteIds}
+        onProfileOpen={openUserProfile}
+        onFollowToggle={me && post.author_id !== me.id ? handleFollowToggle : null}
+        onPostDelete={handlePostDelete}
+        onPostRestore={handlePostRestore}
         onLikeToggle={handleLikeToggle}
         onCommentSubmit={handleCommentSubmit}
         onCommentLikeToggle={handleCommentLikeToggle}
@@ -593,13 +800,11 @@ export function FeedPage({ navigate, routes, onLogout }) {
       <ProfileDrawer
         me={me}
         open={drawerOpen}
-        postCount={posts.length}
-        profileExpanded={profileExpanded}
+        postCount={Number(me?.posts_count) || 0}
         avatarFeedback={avatarFeedback}
         isAvatarUploading={isAvatarUploading}
         onAvatarSelect={handleAvatarSelect}
         onClose={() => setDrawerOpen(false)}
-        onToggleProfile={() => setProfileExpanded((current) => !current)}
         onLogout={onLogout}
       />
 
@@ -622,6 +827,14 @@ export function FeedPage({ navigate, routes, onLogout }) {
         isSubmitting={isAvatarUploading}
         onClose={closeAvatarEditor}
         onSave={handleSaveAvatar}
+      />
+
+      <UserProfileModal
+        profile={selectedProfile}
+        open={isProfileModalOpen}
+        isFollowPending={Boolean(selectedProfile && pendingFollowUserIds[selectedProfile.id])}
+        onClose={() => setIsProfileModalOpen(false)}
+        onFollowToggle={handleFollowToggle}
       />
     </div>
   );

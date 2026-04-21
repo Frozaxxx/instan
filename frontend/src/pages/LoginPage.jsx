@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 
 import { AuthCard } from "../components/AuthCard.jsx";
-import { api, clearToken, getToken, setToken } from "../lib/api.js";
+import { api, clearToken, getRole, getToken, setRole, setToken } from "../lib/api.js";
 
 export function LoginPage({ navigate, routes }) {
   const [form, setForm] = useState({
@@ -19,6 +19,13 @@ export function LoginPage({ navigate, routes }) {
 
     let active = true;
 
+    if (getRole() === "admin") {
+      navigate(routes.adminLogin, { replace: true });
+      return () => {
+        active = false;
+      };
+    }
+
     api("/me", { auth: true })
       .then(() => {
         if (active) {
@@ -32,7 +39,7 @@ export function LoginPage({ navigate, routes }) {
     return () => {
       active = false;
     };
-  }, [navigate, routes.feed]);
+  }, [navigate, routes.adminLogin, routes.feed]);
 
   const handleChange = (event) => {
     const { name, value } = event.target;
@@ -57,7 +64,8 @@ export function LoginPage({ navigate, routes }) {
       });
 
       setToken(response.access_token);
-      navigate(routes.feed, { replace: true });
+      setRole(response.role || "user");
+      navigate(response.role === "admin" ? routes.adminLogin : routes.feed, { replace: true });
     } catch (requestError) {
       setError(requestError.message);
     } finally {
@@ -68,11 +76,16 @@ export function LoginPage({ navigate, routes }) {
   return (
     <AuthCard
       title="Вход"
-      description="Войди в ленту, чтобы смотреть посты и публиковать свои изображения."
+      description="Войди в приложение, чтобы смотреть ленту, публиковать посты и работать с комментариями."
       footer={(
-        <button className="text-link" type="button" onClick={() => navigate(routes.register)}>
-          Нет аккаунта? Перейти к регистрации
-        </button>
+        <>
+          <button className="text-link" type="button" onClick={() => navigate(routes.register)}>
+            Нет аккаунта? Перейти к регистрации
+          </button>
+          <button className="text-link" type="button" onClick={() => navigate(routes.adminLogin)}>
+            Вход для администратора
+          </button>
+        </>
       )}
     >
       <form className="auth-form" onSubmit={handleSubmit}>

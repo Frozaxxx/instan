@@ -1,21 +1,22 @@
-from datetime import UTC, datetime
+import os
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy import func
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, aliased
 
 from auth import get_current_user
 from database import get_db
-from models import Comment, CommentLike, Post, PostLike, User
-from schemas import CommentCreate, CommentDeleteOut, CommentLikeOut, CommentOut, PostLikeOut, PostOut
+from models import Comment, CommentLike, Follow, Post, PostLike, User
+from schemas import CommentCreate, CommentDeleteOut, CommentLikeOut, CommentOut, PostDeleteOut, PostLikeOut, PostOut
 
 router = APIRouter()
 
 BASE_DIR = Path(__file__).resolve().parent
-UPLOADS_DIR = BASE_DIR / "frontend" / "uploads"
+UPLOADS_DIR = Path(os.getenv("MEDIA_ROOT", str(BASE_DIR / "frontend" / "uploads"))).resolve()
 
 ALLOWED_CONTENT_TYPES = {
     "image/jpeg",
@@ -26,6 +27,7 @@ ALLOWED_CONTENT_TYPES = {
 MAX_IMAGE_SIZE_BYTES = 10 * 1024 * 1024
 MAX_CAPTION_LENGTH = 2200
 MAX_COMMENT_LENGTH = 1000
+POST_RESTORE_WINDOW_SECONDS = 30
 
 
 def build_avatar_url(avatar_path: str | None) -> str | None:
@@ -41,11 +43,14 @@ def to_post_out(
     avatar_path: str | None,
     likes_count: int = 0,
     liked_by_me: bool = False,
+    can_delete: bool = False,
+    is_following_author: bool = False,
     comments_count: int = 0,
     comments: list[CommentOut] | None = None,
 ) -> PostOut:
     return PostOut(
         id=int(post.id),
+        author_id=int(post.author_id),
         username=username,
         caption=post.caption,
         image_url=f"/static/{post.image_path}",
@@ -53,6 +58,9 @@ def to_post_out(
         created_at=post.created_at or datetime.now(UTC),
         likes_count=likes_count,
         liked_by_me=liked_by_me,
+        can_delete=can_delete,
+        is_following_author=is_following_author,
+        delete_scheduled_at=post.delete_scheduled_at,
         comments_count=comments_count,
         comments=comments or [],
     )
@@ -70,6 +78,21 @@ def get_comment_or_404(db: Session, comment_id: int) -> Comment:
     if not comment:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Comment not found")
     return comment
+
+
+def purge_expired_deleted_posts(db: Session) -> None:
+    now = datetime.now(UTC)
+    expired_posts = (
+        db.query(Post)
+        .filter(Post.delete_scheduled_at.isnot(None), Post.delete_scheduled_at <= now)
+        .all()
+    )
+    if not expired_posts:
+        return
+
+    for post in expired_posts:
+        db.delete(post)
+    db.commit()
 
 
 def load_post_reactions(
@@ -121,6 +144,8 @@ def build_comment_out(
     comment: Comment,
     username: str,
     avatar_path: str | None,
+    reply_to_user_id: int | None = None,
+    reply_to_username: str | None = None,
     likes_count: int = 0,
     liked_by_me: bool = False,
     can_delete: bool = False,
@@ -129,7 +154,10 @@ def build_comment_out(
         id=int(comment.id),
         post_id=int(comment.post_id),
         parent_id=int(comment.parent_id) if comment.parent_id is not None else None,
+        author_id=int(comment.author_id),
         username=username,
+        reply_to_user_id=reply_to_user_id,
+        reply_to_username=reply_to_username,
         body=comment.body,
         avatar_url=build_avatar_url(avatar_path),
         created_at=comment.created_at or datetime.now(UTC),
@@ -176,26 +204,38 @@ def load_post_comments(
     if not post_ids:
         return comments_by_post, comment_counts
 
+    reply_user = aliased(User)
     rows = (
-        db.query(Comment, User.username, User.avatar_path)
+        db.query(
+            Comment,
+            User.username,
+            User.avatar_path,
+            reply_user.username,
+        )
+        .select_from(Comment)
         .join(User, Comment.author_id == User.id)
+        .join(reply_user, Comment.reply_to_user_id == reply_user.id, isouter=True)
         .filter(Comment.post_id.in_(post_ids))
         .order_by(Comment.created_at.asc(), Comment.id.asc())
         .all()
     )
-    comment_ids = [int(comment.id) for comment, _, _ in rows]
+    comment_ids = [int(comment.id) for comment, _, _, _ in rows]
     like_counts, liked_comment_ids = load_comment_reactions(db, comment_ids, current_user_id)
 
     comments_by_id: dict[int, CommentOut] = {}
+    parent_by_comment_id: dict[int, int | None] = {}
     ordered_comments: list[CommentOut] = []
-    for comment, username, avatar_path in rows:
+    for comment, username, avatar_path, reply_to_username in rows:
         comment_id = int(comment.id)
         post_id = int(comment.post_id)
+        parent_by_comment_id[comment_id] = int(comment.parent_id) if comment.parent_id is not None else None
         comment_counts[post_id] = comment_counts.get(post_id, 0) + 1
         comment_out = build_comment_out(
             comment,
             username,
             avatar_path,
+            reply_to_user_id=int(comment.reply_to_user_id) if comment.reply_to_user_id is not None else None,
+            reply_to_username=reply_to_username,
             likes_count=like_counts.get(comment_id, 0),
             liked_by_me=comment_id in liked_comment_ids,
             can_delete=(
@@ -206,13 +246,34 @@ def load_post_comments(
         comments_by_id[comment_id] = comment_out
         ordered_comments.append(comment_out)
 
+    root_parent_by_comment_id: dict[int, int | None] = {}
+    for comment_id in parent_by_comment_id:
+        root_parent_id = parent_by_comment_id.get(comment_id)
+        while root_parent_id is not None and parent_by_comment_id.get(root_parent_id) is not None:
+            root_parent_id = parent_by_comment_id[root_parent_id]
+        root_parent_by_comment_id[comment_id] = root_parent_id
+
     for comment_out in ordered_comments:
-        if comment_out.parent_id and comment_out.parent_id in comments_by_id:
-            comments_by_id[comment_out.parent_id].replies.append(comment_out)
+        root_parent_id = root_parent_by_comment_id.get(comment_out.id)
+        if root_parent_id and root_parent_id in comments_by_id:
+            comment_out.parent_id = root_parent_id
+            comments_by_id[root_parent_id].replies.append(comment_out)
         else:
             comments_by_post.setdefault(comment_out.post_id, []).append(comment_out)
 
     return comments_by_post, comment_counts
+
+
+def load_following_author_ids(db: Session, author_ids: set[int], current_user_id: int) -> set[int]:
+    if not author_ids:
+        return set()
+
+    rows = (
+        db.query(Follow.following_id)
+        .filter(Follow.follower_id == current_user_id, Follow.following_id.in_(author_ids))
+        .all()
+    )
+    return {int(author_id) for author_id, in rows}
 
 
 def collect_comment_tree_ids(db: Session, root_comment_id: int) -> list[int]:
@@ -252,15 +313,18 @@ def get_posts(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    purge_expired_deleted_posts(db)
     rows = (
         db.query(Post, User.username, User.avatar_path)
         .join(User, Post.author_id == User.id)
+        .filter(Post.delete_scheduled_at.is_(None))
         .order_by(Post.created_at.desc(), Post.id.desc())
         .all()
     )
 
     post_ids = [int(post.id) for post, _, _ in rows]
     post_author_ids = {int(post.id): int(post.author_id) for post, _, _ in rows}
+    following_author_ids = load_following_author_ids(db, set(post_author_ids.values()), int(current_user.id))
     like_counts, liked_post_ids = load_post_reactions(db, post_ids, current_user.id)
     comments_by_post, comment_counts = load_post_comments(db, post_ids, current_user.id, post_author_ids)
 
@@ -271,6 +335,8 @@ def get_posts(
             avatar_path,
             likes_count=like_counts.get(int(post.id), 0),
             liked_by_me=int(post.id) in liked_post_ids,
+            can_delete=int(post.author_id) == int(current_user.id),
+            is_following_author=int(post.author_id) in following_author_ids,
             comments_count=comment_counts.get(int(post.id), 0),
             comments=comments_by_post.get(int(post.id), []),
         )
@@ -337,7 +403,53 @@ async def create_post(
         )
     db.refresh(post)
 
-    return to_post_out(post, current_user.username, current_user.avatar_path)
+    return to_post_out(post, current_user.username, current_user.avatar_path, can_delete=True)
+
+
+@router.post("/posts/{post_id}/delete", response_model=PostDeleteOut)
+def schedule_post_delete(
+    post_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    purge_expired_deleted_posts(db)
+    post = get_post_or_404(db, post_id)
+    if int(post.author_id) != int(current_user.id):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You can delete only your posts")
+
+    if post.delete_scheduled_at is None:
+        post.delete_scheduled_at = datetime.now(UTC) + timedelta(seconds=POST_RESTORE_WINDOW_SECONDS)
+        try:
+            db.commit()
+        except SQLAlchemyError:
+            db.rollback()
+            raise HTTPException(status_code=500, detail="Could not schedule post deletion")
+        db.refresh(post)
+
+    return PostDeleteOut(post_id=int(post.id), delete_scheduled_at=post.delete_scheduled_at, deleted=False)
+
+
+@router.post("/posts/{post_id}/restore", response_model=PostDeleteOut)
+def restore_post(
+    post_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    purge_expired_deleted_posts(db)
+    post = get_post_or_404(db, post_id)
+    if int(post.author_id) != int(current_user.id):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You can restore only your posts")
+    if post.delete_scheduled_at is None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Post is not pending deletion")
+
+    post.delete_scheduled_at = None
+    try:
+        db.commit()
+    except SQLAlchemyError:
+        db.rollback()
+        raise HTTPException(status_code=500, detail="Could not restore post")
+
+    return PostDeleteOut(post_id=int(post.id), delete_scheduled_at=None, deleted=False)
 
 
 @router.post("/posts/{post_id}/comments", response_model=CommentOut, status_code=status.HTTP_201_CREATED)
@@ -362,6 +474,7 @@ def create_comment(
         )
 
     parent_id = payload.parent_id
+    reply_to_user_id = None
     if parent_id is not None:
         parent_comment = get_comment_or_404(db, parent_id)
         if int(parent_comment.post_id) != post_id:
@@ -369,11 +482,15 @@ def create_comment(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                 detail="Parent comment belongs to another post",
             )
+        reply_to_user_id = int(parent_comment.author_id)
+        if parent_comment.parent_id is not None:
+            parent_id = int(parent_comment.parent_id)
 
     comment = Comment(
         post_id=post_id,
         author_id=current_user.id,
         parent_id=parent_id,
+        reply_to_user_id=reply_to_user_id,
         body=normalized_body,
     )
     db.add(comment)
@@ -387,7 +504,19 @@ def create_comment(
         )
     db.refresh(comment)
 
-    return build_comment_out(comment, current_user.username, current_user.avatar_path, can_delete=True)
+    reply_to_username = None
+    if reply_to_user_id is not None:
+        reply_to_user = db.query(User).filter(User.id == reply_to_user_id).first()
+        reply_to_username = reply_to_user.username if reply_to_user else None
+
+    return build_comment_out(
+        comment,
+        current_user.username,
+        current_user.avatar_path,
+        reply_to_user_id=reply_to_user_id,
+        reply_to_username=reply_to_username,
+        can_delete=True,
+    )
 
 
 @router.delete("/comments/{comment_id}", response_model=CommentDeleteOut)

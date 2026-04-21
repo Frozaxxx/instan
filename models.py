@@ -14,6 +14,19 @@ class User(Base):
     followers_count = Column(Integer, default=None)
     following_count = Column(Integer, default=None)
     avatar_path = Column(String, nullable=True)
+    is_blocked = Column(Integer, default=0, nullable=False)
+
+
+class Follow(Base):
+    __tablename__ = "follows"
+    __table_args__ = (
+        Index("uq_follows_follower_following", "follower_id", "following_id", unique=True),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    follower_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    following_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
 
 class Post(Base):
@@ -23,6 +36,7 @@ class Post(Base):
     author_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     caption = Column(Text, nullable=False, default="")
     image_path = Column(String, nullable=False)
+    delete_scheduled_at = Column(DateTime(timezone=True), nullable=True, index=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False, index=True)
 
 
@@ -45,6 +59,7 @@ class Comment(Base):
     post_id = Column(Integer, ForeignKey("posts.id", ondelete="CASCADE"), nullable=False, index=True)
     author_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     parent_id = Column(Integer, ForeignKey("comments.id", ondelete="CASCADE"), nullable=True, index=True)
+    reply_to_user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
     body = Column(Text, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False, index=True)
 
