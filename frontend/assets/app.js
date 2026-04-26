@@ -12935,6 +12935,35 @@ function MetricCard({ label, value }) {
     /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { className: "admin-metric__label", children: label })
   ] });
 }
+function formatChartDate(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.valueOf())) {
+    return value;
+  }
+  return new Intl.DateTimeFormat("ru-RU", {
+    day: "2-digit",
+    month: "short"
+  }).format(date);
+}
+function ActivityChart({ title, subtitle, points }) {
+  const safePoints = Array.isArray(points) ? points : [];
+  const maxValue = safePoints.reduce((max, point) => Math.max(max, point.value || 0), 0);
+  return /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("section", { className: "admin-chart-card", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "admin-chart-card__header", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { className: "admin-chart-card__title", children: title }),
+      /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { className: "admin-chart-card__subtitle", children: subtitle })
+    ] }),
+    safePoints.length ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { className: "admin-chart", children: safePoints.map((point) => {
+      const value = point.value || 0;
+      const height = maxValue > 0 ? Math.max(value / maxValue * 100, value > 0 ? 12 : 0) : 0;
+      return /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "admin-chart__item", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { className: "admin-chart__value", children: value }),
+        /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { className: "admin-chart__bar-shell", children: /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { className: "admin-chart__bar", style: { height: `${height}%` } }) }),
+        /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { className: "admin-chart__label", children: formatChartDate(point.date) })
+      ] }, `${title}-${point.date}`);
+    }) }) : /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { className: "admin-chart__empty", children: "No data yet." })
+  ] });
+}
 function AdminPostModal({ post, open, onClose, onDelete, isDeletePending }) {
   if (!open || !post) {
     return null;
@@ -12943,13 +12972,8 @@ function AdminPostModal({ post, open, onClose, onDelete, isDeletePending }) {
     /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { className: "modal-backdrop profile-modal__backdrop is-visible", onClick: onClose }),
     /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("section", { className: "admin-post-modal", role: "dialog", "aria-modal": "true", "aria-labelledby": `admin-post-${post.id}`, children: [
       /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("header", { className: "admin-post-modal__header", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { id: `admin-post-${post.id}`, className: "admin-post-modal__title", children: [
-          "\u041F\u043E\u0441\u0442 #",
-          post.id,
-          " \u043E\u0442 @",
-          post.username
-        ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("button", { className: "icon-button", type: "button", "aria-label": "\u0417\u0430\u043A\u0440\u044B\u0442\u044C \u043F\u043E\u0441\u0442", onClick: onClose, children: "\xD7" })
+        /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { id: `admin-post-${post.id}`, className: "admin-post-modal__title", children: `\u041F\u043E\u0441\u0442 #${post.id} \u043E\u0442 @${post.username}` }),
+        /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("button", { className: "icon-button", type: "button", "aria-label": "Close post", onClick: onClose, children: "\xD7" })
       ] }),
       /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "admin-post-modal__body", children: [
         /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
@@ -12957,18 +12981,12 @@ function AdminPostModal({ post, open, onClose, onDelete, isDeletePending }) {
           {
             className: "admin-post-modal__image",
             src: resolveMediaUrl(post.image_url),
-            alt: `\u041F\u043E\u0441\u0442 \u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u0435\u043B\u044F ${post.username}`
+            alt: `Post by ${post.username}`
           }
         ),
         /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "admin-post-modal__meta", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("span", { children: [
-            "\u041B\u0430\u0439\u043A\u0438: ",
-            post.likes_count
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("span", { children: [
-            "\u041A\u043E\u043C\u043C\u0435\u043D\u0442\u0430\u0440\u0438\u0438: ",
-            post.comments_count
-          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { children: `\u041B\u0430\u0439\u043A\u0438: ${post.likes_count}` }),
+          /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { children: `\u041A\u043E\u043C\u043C\u0435\u043D\u0442\u0430\u0440\u0438\u0438: ${post.comments_count}` }),
           /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { children: new Date(post.created_at).toLocaleString("ru-RU") })
         ] }),
         /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { className: "admin-post-modal__caption", children: post.caption || "\u0411\u0435\u0437 \u043E\u043F\u0438\u0441\u0430\u043D\u0438\u044F" }),
@@ -12988,6 +13006,7 @@ function AdminPostModal({ post, open, onClose, onDelete, isDeletePending }) {
 }
 function AdminPage({ navigate, routes }) {
   const [metrics, setMetrics] = (0, import_react2.useState)(null);
+  const [activity, setActivity] = (0, import_react2.useState)({ posts_by_day: [], posting_users_by_day: [] });
   const [users, setUsers] = (0, import_react2.useState)([]);
   const [posts, setPosts] = (0, import_react2.useState)([]);
   const [comments, setComments] = (0, import_react2.useState)([]);
@@ -13003,13 +13022,18 @@ function AdminPage({ navigate, routes }) {
     setLoading(true);
     setError("");
     try {
-      const [nextMetrics, nextUsers, nextPosts, nextComments] = await Promise.all([
+      const [nextMetrics, nextActivity, nextUsers, nextPosts, nextComments] = await Promise.all([
         api("/admin/metrics", { auth: true }),
+        api("/admin/activity", { auth: true }),
         api("/admin/users", { auth: true }),
         api("/admin/posts", { auth: true }),
         api("/admin/comments", { auth: true })
       ]);
       setMetrics(nextMetrics);
+      setActivity({
+        posts_by_day: Array.isArray(nextActivity?.posts_by_day) ? nextActivity.posts_by_day : [],
+        posting_users_by_day: Array.isArray(nextActivity?.posting_users_by_day) ? nextActivity.posting_users_by_day : []
+      });
       setUsers(Array.isArray(nextUsers) ? nextUsers : []);
       setPosts(Array.isArray(nextPosts) ? nextPosts : []);
       setComments(Array.isArray(nextComments) ? nextComments : []);
@@ -13071,17 +13095,37 @@ function AdminPage({ navigate, routes }) {
       ] }),
       error ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { className: "feed-inline-error", children: error }) : null,
       loading ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { className: "feed-state", children: /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { className: "feed-state__title", children: "\u0417\u0430\u0433\u0440\u0443\u0436\u0430\u0435\u043C \u0430\u0434\u043C\u0438\u043D-\u0434\u0430\u043D\u043D\u044B\u0435..." }) }) : /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("main", { className: "admin-content", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("section", { className: "admin-section", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { className: "admin-section__title", children: "\u041C\u0435\u0442\u0440\u0438\u043A\u0438" }),
-          /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "admin-metrics", children: [
-            /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(MetricCard, { label: "\u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u0435\u043B\u0438", value: metrics?.users_count ?? 0 }),
-            /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(MetricCard, { label: "\u0437\u0430\u0431\u043B\u043E\u043A\u0438\u0440\u043E\u0432\u0430\u043D\u044B", value: metrics?.blocked_users_count ?? 0 }),
-            /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(MetricCard, { label: "\u043F\u043E\u0441\u0442\u044B", value: metrics?.posts_count ?? 0 }),
-            /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(MetricCard, { label: "\u043A\u043E\u043C\u043C\u0435\u043D\u0442\u0430\u0440\u0438\u0438", value: metrics?.comments_count ?? 0 }),
-            /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(MetricCard, { label: "\u043B\u0430\u0439\u043A\u0438 \u043F\u043E\u0441\u0442\u043E\u0432", value: metrics?.post_likes_count ?? 0 }),
-            /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(MetricCard, { label: "\u043B\u0430\u0439\u043A\u0438 \u043A\u043E\u043C\u043C\u0435\u043D\u0442\u0430\u0440\u0438\u0435\u0432", value: metrics?.comment_likes_count ?? 0 })
+        /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("section", { className: "admin-section", children: /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "admin-overview", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "admin-overview__metrics", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { className: "admin-section__title", children: "\u041C\u0435\u0442\u0440\u0438\u043A\u0438" }),
+            /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "admin-metrics", children: [
+              /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(MetricCard, { label: "\u041F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u0435\u043B\u0438", value: metrics?.users_count ?? 0 }),
+              /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(MetricCard, { label: "\u0417\u0430\u0431\u043B\u043E\u043A\u0438\u0440\u043E\u0432\u0430\u043D\u044B", value: metrics?.blocked_users_count ?? 0 }),
+              /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(MetricCard, { label: "\u041F\u043E\u0441\u0442\u044B", value: metrics?.posts_count ?? 0 }),
+              /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(MetricCard, { label: "\u041A\u043E\u043C\u043C\u0435\u043D\u0442\u0430\u0440\u0438\u0438", value: metrics?.comments_count ?? 0 }),
+              /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(MetricCard, { label: "\u041B\u0430\u0439\u043A\u0438 \u043F\u043E\u0441\u0442\u043E\u0432", value: metrics?.post_likes_count ?? 0 }),
+              /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(MetricCard, { label: "\u041B\u0430\u0439\u043A\u0438 \u043A\u043E\u043C\u043C\u0435\u043D\u0442\u0430\u0440\u0438\u0435\u0432", value: metrics?.comment_likes_count ?? 0 })
+            ] })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("aside", { className: "admin-overview__charts", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+              ActivityChart,
+              {
+                title: "\u0410\u043A\u0442\u0438\u0432\u043D\u043E\u0441\u0442\u044C \u043F\u043E\u0441\u0442\u043E\u0432",
+                subtitle: "How many posts were published each day",
+                points: activity.posts_by_day
+              }
+            ),
+            /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+              ActivityChart,
+              {
+                title: "\u0410\u0432\u0442\u043E\u0440\u044B \u043F\u043E\u0441\u0442\u043E\u0432",
+                subtitle: "How many unique users published posts each day",
+                points: activity.posting_users_by_day
+              }
+            )
           ] })
-        ] }),
+        ] }) }),
         /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("section", { className: "admin-section", children: [
           /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { className: "admin-section__title", children: "\u041F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u0435\u043B\u0438" }),
           /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { className: "admin-table", children: users.map((user) => /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "admin-row", children: [
@@ -13090,17 +13134,9 @@ function AdminPage({ navigate, routes }) {
                 "@",
                 user.username,
                 " ",
-                user.is_blocked ? "(\u0437\u0430\u0431\u043B\u043E\u043A\u0438\u0440\u043E\u0432\u0430\u043D)" : ""
+                user.is_blocked ? `(${"\u0437\u0430\u0431\u043B\u043E\u043A\u0438\u0440\u043E\u0432\u0430\u043D"})` : ""
               ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "admin-row__meta", children: [
-                user.full_name,
-                " \u2022 ",
-                user.email,
-                " \u2022 \u043F\u043E\u0441\u0442\u044B: ",
-                user.posts_count,
-                " \u2022 \u043A\u043E\u043C\u043C\u0435\u043D\u0442\u0430\u0440\u0438\u0438: ",
-                user.comments_count
-              ] })
+              /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { className: "admin-row__meta", children: `${user.full_name} \u2022 ${user.email} \u2022 ${"\u043F\u043E\u0441\u0442\u044B"}: ${user.posts_count} \u2022 ${"\u043A\u043E\u043C\u043C\u0435\u043D\u0442\u0430\u0440\u0438\u0438"}: ${user.comments_count}` })
             ] }),
             /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
               "button",
@@ -13122,59 +13158,49 @@ function AdminPage({ navigate, routes }) {
         ] }),
         /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("section", { className: "admin-section", children: [
           /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { className: "admin-section__title", children: "\u041F\u043E\u0441\u0442\u044B" }),
-          /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { className: "admin-table", children: posts.map((post) => /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "admin-row admin-row--interactive", onClick: () => setSelectedPost(post), role: "button", tabIndex: 0, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "admin-row__main", children: [
-              /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "admin-row__title", children: [
-                "\u041F\u043E\u0441\u0442 #",
-                post.id,
-                " \u043E\u0442 @",
-                post.username
-              ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "admin-row__meta", children: [
-                "\u043B\u0430\u0439\u043A\u0438: ",
-                post.likes_count,
-                " \u2022 \u043A\u043E\u043C\u043C\u0435\u043D\u0442\u0430\u0440\u0438\u0438: ",
-                post.comments_count
-              ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { className: "admin-row__body admin-row__body--clamped", children: post.caption || "\u0411\u0435\u0437 \u043E\u043F\u0438\u0441\u0430\u043D\u0438\u044F" })
-            ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
-              "button",
-              {
-                className: "button button--secondary admin-danger",
-                type: "button",
-                disabled: Boolean(pendingKeys[`post-${post.id}`]),
-                onClick: (event) => {
-                  event.stopPropagation();
-                  withPending(
-                    `post-${post.id}`,
-                    () => api(`/admin/posts/${post.id}`, {
-                      method: "DELETE",
-                      auth: true
-                    })
-                  );
-                },
-                children: "\u0423\u0434\u0430\u043B\u0438\u0442\u044C \u043F\u043E\u0441\u0442"
-              }
-            )
-          ] }, post.id)) })
+          /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { className: "admin-table", children: posts.map((post) => /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(
+            "div",
+            {
+              className: "admin-row admin-row--interactive",
+              onClick: () => setSelectedPost(post),
+              role: "button",
+              tabIndex: 0,
+              children: [
+                /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "admin-row__main", children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { className: "admin-row__title", children: `\u041F\u043E\u0441\u0442 #${post.id} \u043E\u0442 @${post.username}` }),
+                  /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { className: "admin-row__meta", children: `\u043B\u0430\u0439\u043A\u0438: ${post.likes_count} \u2022 \u043A\u043E\u043C\u043C\u0435\u043D\u0442\u0430\u0440\u0438\u0438: ${post.comments_count}` }),
+                  /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { className: "admin-row__body admin-row__body--clamped", children: post.caption || "\u0411\u0435\u0437 \u043E\u043F\u0438\u0441\u0430\u043D\u0438\u044F" })
+                ] }),
+                /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+                  "button",
+                  {
+                    className: "button button--secondary admin-danger",
+                    type: "button",
+                    disabled: Boolean(pendingKeys[`post-${post.id}`]),
+                    onClick: (event) => {
+                      event.stopPropagation();
+                      withPending(
+                        `post-${post.id}`,
+                        () => api(`/admin/posts/${post.id}`, {
+                          method: "DELETE",
+                          auth: true
+                        })
+                      );
+                    },
+                    children: "\u0423\u0434\u0430\u043B\u0438\u0442\u044C \u043F\u043E\u0441\u0442"
+                  }
+                )
+              ]
+            },
+            post.id
+          )) })
         ] }),
         /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("section", { className: "admin-section", children: [
           /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { className: "admin-section__title", children: "\u041A\u043E\u043C\u043C\u0435\u043D\u0442\u0430\u0440\u0438\u0438" }),
           /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { className: "admin-table", children: comments.map((comment) => /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "admin-row", children: [
             /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "admin-row__main", children: [
-              /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "admin-row__title", children: [
-                "\u041A\u043E\u043C\u043C\u0435\u043D\u0442\u0430\u0440\u0438\u0439 #",
-                comment.id,
-                " \u043E\u0442 @",
-                comment.username
-              ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "admin-row__meta", children: [
-                "\u043F\u043E\u0441\u0442: ",
-                comment.post_id,
-                " \u2022 \u043E\u0442\u0432\u0435\u0442\u043E\u0432: ",
-                comment.replies_count
-              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { className: "admin-row__title", children: `\u041A\u043E\u043C\u043C\u0435\u043D\u0442\u0430\u0440\u0438\u0439 #${comment.id} \u043E\u0442 @${comment.username}` }),
+              /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { className: "admin-row__meta", children: `\u043F\u043E\u0441\u0442: ${comment.post_id} \u2022 \u043E\u0442\u0432\u0435\u0442\u043E\u0432: ${comment.replies_count}` }),
               /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { className: "admin-row__body", children: comment.body })
             ] }),
             /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(

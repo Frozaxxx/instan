@@ -108,6 +108,16 @@ class AdminMetricsOut(BaseModel):
     comment_likes_count: int
 
 
+class AdminChartPointOut(BaseModel):
+    date: str
+    value: int
+
+
+class AdminActivityOut(BaseModel):
+    posts_by_day: list[AdminChartPointOut]
+    posting_users_by_day: list[AdminChartPointOut]
+
+
 class AdminUserOut(BaseModel):
     id: int
     username: str

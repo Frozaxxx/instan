@@ -1,14 +1,30 @@
 import os
+from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
 from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.orm import sessionmaker, declarative_base
 
-DATABASE_URL = os.getenv(
-    "DATABASE_URL",
-    "postgresql+psycopg2://postgres:postgres@localhost:5432/postgres",
-)
+DEFAULT_DATABASE_URL = "postgresql+psycopg2://postgres:postgres@localhost:5432/postgres"
 
-engine = create_engine(DATABASE_URL)
+
+def normalize_database_url(raw_url: str) -> str:
+    url = (raw_url or "").strip() or DEFAULT_DATABASE_URL
+
+    if url.startswith("postgres://"):
+        url = "postgresql://" + url[len("postgres://") :]
+
+    parsed = urlparse(url)
+    if parsed.scheme == "postgresql" and parsed.hostname and parsed.hostname.endswith("supabase.com"):
+        query = dict(parse_qsl(parsed.query, keep_blank_values=True))
+        query.setdefault("sslmode", "require")
+        url = urlunparse(parsed._replace(query=urlencode(query)))
+
+    return url
+
+
+DATABASE_URL = normalize_database_url(os.getenv("DATABASE_URL", DEFAULT_DATABASE_URL))
+
+engine = create_engine(DATABASE_URL, pool_pre_ping=True)
 SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)
 Base = declarative_base()
 

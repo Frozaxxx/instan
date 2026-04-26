@@ -1,18 +1,48 @@
+from datetime import timedelta
+
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import func
+from sqlalchemy import distinct, func
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from auth import require_admin
 from database import get_db
 from models import Comment, CommentLike, Post, PostLike, User
-from schemas import AdminCommentOut, AdminMetricsOut, AdminPostOut, AdminUserOut
+from schemas import AdminActivityOut, AdminChartPointOut, AdminCommentOut, AdminMetricsOut, AdminPostOut, AdminUserOut
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
 
 def build_image_url(image_path: str) -> str:
     return f"/static/{image_path.lstrip('/')}"
+
+
+def build_daily_series(rows: list[tuple], value_index: int = 1) -> list[AdminChartPointOut]:
+    if not rows:
+        return []
+
+    normalized_rows = []
+    for row in rows:
+        day_value = row[0]
+        if hasattr(day_value, "date"):
+            day_value = day_value.date()
+        normalized_rows.append((day_value, int(row[value_index] or 0)))
+
+    values_by_day = {day: value for day, value in normalized_rows}
+    current_day = min(values_by_day)
+    last_day = max(values_by_day)
+    series: list[AdminChartPointOut] = []
+
+    while current_day <= last_day:
+        series.append(
+            AdminChartPointOut(
+                date=current_day.isoformat(),
+                value=values_by_day.get(current_day, 0),
+            )
+        )
+        current_day += timedelta(days=1)
+
+    return series
 
 
 @router.get("/metrics", response_model=AdminMetricsOut)
@@ -27,6 +57,36 @@ def get_admin_metrics(
         comments_count=int(db.query(func.count(Comment.id)).scalar() or 0),
         post_likes_count=int(db.query(func.count(PostLike.id)).scalar() or 0),
         comment_likes_count=int(db.query(func.count(CommentLike.id)).scalar() or 0),
+    )
+
+
+@router.get("/activity", response_model=AdminActivityOut)
+def get_admin_activity(
+    _: dict = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    post_rows = (
+        db.query(
+            func.date_trunc("day", Post.created_at).label("day"),
+            func.count(Post.id).label("posts_count"),
+        )
+        .group_by("day")
+        .order_by("day")
+        .all()
+    )
+    posting_user_rows = (
+        db.query(
+            func.date_trunc("day", Post.created_at).label("day"),
+            func.count(distinct(Post.author_id)).label("users_count"),
+        )
+        .group_by("day")
+        .order_by("day")
+        .all()
+    )
+
+    return AdminActivityOut(
+        posts_by_day=build_daily_series(post_rows),
+        posting_users_by_day=build_daily_series(posting_user_rows),
     )
 
 
