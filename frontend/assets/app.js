@@ -12946,7 +12946,7 @@ function formatChartDate(value) {
   }).format(date);
 }
 function ActivityChart({ title, subtitle, points }) {
-  const safePoints = Array.isArray(points) ? points : [];
+  const safePoints = Array.isArray(points) ? points.slice(-7) : [];
   const maxValue = safePoints.reduce((max, point) => Math.max(max, point.value || 0), 0);
   return /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("section", { className: "admin-chart-card", children: [
     /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "admin-chart-card__header", children: [

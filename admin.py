@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import distinct, func
@@ -18,8 +18,15 @@ def build_image_url(image_path: str) -> str:
 
 
 def build_daily_series(rows: list[tuple], value_index: int = 1) -> list[AdminChartPointOut]:
+    today = datetime.now().date()
+
     if not rows:
-        return []
+        return [
+            AdminChartPointOut(
+                date=today.isoformat(),
+                value=0,
+            )
+        ]
 
     normalized_rows = []
     for row in rows:
@@ -30,7 +37,7 @@ def build_daily_series(rows: list[tuple], value_index: int = 1) -> list[AdminCha
 
     values_by_day = {day: value for day, value in normalized_rows}
     current_day = min(values_by_day)
-    last_day = max(values_by_day)
+    last_day = max(max(values_by_day), today)
     series: list[AdminChartPointOut] = []
 
     while current_day <= last_day:

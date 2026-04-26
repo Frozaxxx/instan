@@ -24,7 +24,7 @@ function formatChartDate(value) {
 }
 
 function ActivityChart({ title, subtitle, points }) {
-  const safePoints = Array.isArray(points) ? points : [];
+  const safePoints = Array.isArray(points) ? points.slice(-7) : [];
   const maxValue = safePoints.reduce((max, point) => Math.max(max, point.value || 0), 0);
 
   return (
